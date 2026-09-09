@@ -1,0 +1,14 @@
+# Raw Kaggle dump (~500MB) is never committed; scripts/download_data.py fetches it.
+data/raw/*
+!data/raw/.gitkeep
+
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Scratch
+data/interim/

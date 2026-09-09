@@ -1,0 +1,15 @@
+# Core numerics / ML. No torch: Python 3.14 has no torch wheels, which is why
+# embeddings come from the Gemini API (cached) rather than sentence-transformers.
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.5
+scipy>=1.11
+
+# LLM provider
+google-genai>=1.0
+python-dotenv>=1.0
+
+# Config / CLI / tests
+PyYAML>=6.0
+rich>=13.0
+pytest>=8.0
