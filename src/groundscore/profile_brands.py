@@ -10,16 +10,24 @@ variant of "please DM us" -- for those, a perfectly-imitating agent learns to
 emit deflections, and every reply-quality metric becomes a measure of how well
 the model reproduces a non-answer.
 
-So the deciding statistic is the deflection rate, not the volume. The other
-columns guard against picking a low-deflection brand that is useless for other
+So the deciding statistic is the handoff rate, not the volume. The other
+columns guard against picking a low-handoff brand that is useless for other
 reasons (too few threads, one-line replies, no topical variety).
+
+A correction worth recording: the first version of this profiler measured only
+DM-style deflection and reported AmazonHelp at 0.008. That undercounted by 13x,
+because AmazonHelp rarely says "DM us" and instead routes people to a contact
+page. Both forms are now measured separately, and `handoff_rate` -- the union --
+is the column the brand decision rests on.
 
 Columns
 -------
 threads              usable (customer opener -> brand reply) threads in sample
-deflection_rate      share of FIRST brand replies that only push to DM/private
+dm_deflection_rate   share of FIRST replies pushing the customer into DMs
+link_handoff_rate    share routing to a contact page or phone line instead
+handoff_rate         union of the two: "not resolved in this channel"
 median_reply_chars   length of the first brand reply
-substantive_rate     share of first replies that are non-deflecting AND >=80
+substantive_rate     share of first replies that are non-handoff AND >=80
                      chars -- a proxy for "contains an actual instruction"
 multi_turn_rate      share of threads where the customer replied again, i.e.
                      the brand's answer did not end the conversation
@@ -35,7 +43,7 @@ import statistics
 from collections import Counter
 from pathlib import Path
 
-from .cleaning import is_deflection, is_usable_customer_message
+from .cleaning import is_deflection, is_handoff, is_link_handoff, is_usable_customer_message
 from .ingest import RAW_CSV, build_threads
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -78,6 +86,7 @@ def profile(
 
         first_replies = [t["brand_replies"][0]["text"] for t in usable]
         deflections = [is_deflection(r) for r in first_replies]
+        handoffs = [is_handoff(r) for r in first_replies]
         lengths = [len(r) for r in first_replies]
 
         tokens = [w for t in usable for w in t["customer_msg"].lower().split()]
@@ -86,10 +95,13 @@ def profile(
         rows.append({
             "brand": brand,
             "threads": len(usable),
-            "deflection_rate": round(sum(deflections) / len(usable), 3),
+            "dm_deflection_rate": round(sum(deflections) / len(usable), 3),
+            "link_handoff_rate": round(
+                sum(1 for r in first_replies if is_link_handoff(r)) / len(usable), 3),
+            "handoff_rate": round(sum(handoffs) / len(usable), 3),
             "median_reply_chars": int(statistics.median(lengths)),
             "substantive_rate": round(
-                sum(1 for r, d in zip(first_replies, deflections) if not d and len(r) >= 80)
+                sum(1 for r, h in zip(first_replies, handoffs) if not h and len(r) >= 80)
                 / len(usable), 3),
             "multi_turn_rate": round(sum(1 for t in usable if t["customer_turns"] > 1) / len(usable), 3),
             "median_replies_per_thread": statistics.median([len(t["brand_replies"]) for t in usable]),
@@ -99,8 +111,8 @@ def profile(
 
 
 def to_markdown(rows: list[dict]) -> str:
-    cols = ["brand", "threads", "deflection_rate", "substantive_rate",
-            "median_reply_chars", "multi_turn_rate", "lexical_diversity"]
+    cols = ["brand", "threads", "dm_deflection_rate", "link_handoff_rate", "handoff_rate",
+            "substantive_rate", "median_reply_chars", "multi_turn_rate", "lexical_diversity"]
     head = "| " + " | ".join(cols) + " |"
     rule = "|" + "|".join(["---"] * len(cols)) + "|"
     body = [

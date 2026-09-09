@@ -2,9 +2,11 @@
   {
     "brand": "AmazonHelp",
     "threads": 3653,
-    "deflection_rate": 0.008,
+    "dm_deflection_rate": 0.008,
+    "link_handoff_rate": 0.099,
+    "handoff_rate": 0.108,
     "median_reply_chars": 105,
-    "substantive_rate": 0.803,
+    "substantive_rate": 0.716,
     "multi_turn_rate": 0.597,
     "median_replies_per_thread": 2,
     "lexical_diversity": 0.1831
@@ -12,9 +14,11 @@
   {
     "brand": "AppleSupport",
     "threads": 3949,
-    "deflection_rate": 0.536,
+    "dm_deflection_rate": 0.536,
+    "link_handoff_rate": 0.035,
+    "handoff_rate": 0.551,
     "median_reply_chars": 105,
-    "substantive_rate": 0.408,
+    "substantive_rate": 0.394,
     "multi_turn_rate": 0.35,
     "median_replies_per_thread": 1,
     "lexical_diversity": 0.1301
@@ -22,9 +26,11 @@
   {
     "brand": "Uber_Support",
     "threads": 3953,
-    "deflection_rate": 0.648,
+    "dm_deflection_rate": 0.648,
+    "link_handoff_rate": 0.119,
+    "handoff_rate": 0.75,
     "median_reply_chars": 85,
-    "substantive_rate": 0.242,
+    "substantive_rate": 0.17,
     "multi_turn_rate": 0.357,
     "median_replies_per_thread": 1,
     "lexical_diversity": 0.1263
@@ -32,9 +38,11 @@
   {
     "brand": "SpotifyCares",
     "threads": 3937,
-    "deflection_rate": 0.374,
+    "dm_deflection_rate": 0.374,
+    "link_handoff_rate": 0.003,
+    "handoff_rate": 0.377,
     "median_reply_chars": 111,
-    "substantive_rate": 0.558,
+    "substantive_rate": 0.555,
     "multi_turn_rate": 0.355,
     "median_replies_per_thread": 1,
     "lexical_diversity": 0.135
@@ -42,9 +50,11 @@
   {
     "brand": "Delta",
     "threads": 3950,
-    "deflection_rate": 0.2,
+    "dm_deflection_rate": 0.2,
+    "link_handoff_rate": 0.001,
+    "handoff_rate": 0.201,
     "median_reply_chars": 87,
-    "substantive_rate": 0.41,
+    "substantive_rate": 0.409,
     "multi_turn_rate": 0.354,
     "median_replies_per_thread": 1.0,
     "lexical_diversity": 0.1567
@@ -52,9 +62,11 @@
   {
     "brand": "XboxSupport",
     "threads": 3921,
-    "deflection_rate": 0.287,
+    "dm_deflection_rate": 0.287,
+    "link_handoff_rate": 0.002,
+    "handoff_rate": 0.289,
     "median_reply_chars": 97,
-    "substantive_rate": 0.548,
+    "substantive_rate": 0.547,
     "multi_turn_rate": 0.52,
     "median_replies_per_thread": 1,
     "lexical_diversity": 0.1193
@@ -62,9 +74,11 @@
   {
     "brand": "hulu_support",
     "threads": 3976,
-    "deflection_rate": 0.006,
+    "dm_deflection_rate": 0.006,
+    "link_handoff_rate": 0.052,
+    "handoff_rate": 0.057,
     "median_reply_chars": 110,
-    "substantive_rate": 0.978,
+    "substantive_rate": 0.927,
     "multi_turn_rate": 0.383,
     "median_replies_per_thread": 1.0,
     "lexical_diversity": 0.1241

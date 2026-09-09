@@ -1,22 +1,25 @@
 """Text embeddings, cached to disk so offline replay works.
 
-Backend choice, and why it is not sentence-transformers
--------------------------------------------------------
-The obvious default for this task would be `sentence-transformers/all-MiniLM`.
-It is unavailable here: the dev machine runs Python 3.14, for which no PyTorch
-wheels exist. Rather than pin an older interpreter, embeddings come from the
-Gemini embeddings API and are cached to a committed .npz, so the retrieval
-index is byte-identical for a reviewer with no API key.
+Backend choice
+--------------
+`sentence-transformers/all-MiniLM` would be the obvious default. It is
+unavailable here: the dev machine runs Python 3.14, for which no PyTorch wheels
+exist, and pinning an older interpreter would complicate setup for every
+reviewer.
 
-A pure-sklearn TF-IDF + SVD backend is kept as a keyless fallback. It is
-genuinely worse at short-text semantic similarity (it matches surface tokens,
-so "can't log in" and "password reset loop" stay far apart), which is why it is
-a fallback and not the default -- but it makes every code path runnable by
-someone with no key and no cache at all.
+Three backends are implemented:
 
-Vectors are L2-normalised, so cosine similarity is a plain dot product. Gemini
-embeddings truncated below their native 3072 dimensions must be renormalised;
-that is done here rather than at call sites.
+  ollama  nomic-embed-text running locally. THE DEFAULT. 768-dim, ~324
+          texts/minute warm, no quota, no key, no network.
+  gemini  gemini-embedding-001. Implemented and working, but the free tier
+          throttled it to a few hundred texts before stalling, so it could not
+          embed a 10k-message corpus in practice.
+  tfidf   char-ngram TF-IDF + TruncatedSVD, pure scikit-learn. Keyless fallback
+          that needs no model at all. Genuinely worse at paraphrase ("can't log
+          in" vs "password reset loop" stay far apart), so it is a fallback and
+          not the default.
+
+Vectors are L2-normalised, so cosine similarity is a plain dot product.
 """
 
 from __future__ import annotations
@@ -29,7 +32,7 @@ from typing import Callable
 
 import numpy as np
 
-from . import llm
+from . import llm, providers
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EMB_CACHE_PATH = REPO_ROOT / "cache" / "emb_cache.npz"
@@ -37,10 +40,18 @@ EMB_CACHE_PATH = REPO_ROOT / "cache" / "emb_cache.npz"
 # 768 rather than the native 3072: it keeps the committed cache ~4x smaller for
 # a marginal retrieval-quality cost on short tweets, and the repo has to stay
 # clonable. Documented in DECISIONS.md.
+# nomic-embed-text is natively 768-dim, which is also what the Gemini path was
+# truncated to, so the two backends produce caches of the same shape.
 EMBED_DIM = 768
-_BATCH = 50  # texts per request; the free tier meters ~100 texts/min, so a
-              # 100-text request needs a perfectly empty window and starves on
-              # retry. 50 leaves headroom for two requests per window.
+# The free tier meters embeddings at 100 *texts* per minute (the quota is named
+# "requests" but a batched call is charged per text). Relying on 429s to pace
+# the run does not work: a large request arrives mid-window, gets rejected, and
+# on retry collides with the next window's traffic, so the job can stall for a
+# long time making no progress. Small requests plus deliberate pacing keep the
+# run moving steadily instead.
+_BATCH = 20 if llm.provider() == "gemini" else 64
+_TEXTS_PER_MINUTE = 90   # Gemini free tier only; local has no quota
+_last_request_at = 0.0
 
 
 def _text_key(text: str, model: str, dim: int) -> str:
@@ -122,12 +133,23 @@ def _retry_delay_seconds(message: str, fallback: float = 30.0) -> float:
 
 
 def _embed_chunk(texts: list[str], model: str, dim: int, max_attempts: int = 10) -> np.ndarray:
-    """Embed one request's worth of texts, retrying quota AND transport errors.
+    """Embed one request's worth of texts.
 
-    Transport errors matter as much as quota here: a single transient DNS or
-    connection failure part-way through a 10k-text run would otherwise abort
-    the whole job and discard an hour of rate-limited progress.
+    Local (Ollama) has no quota, so it just retries transport hiccups. The
+    Gemini path additionally has to survive quota rejections, and obeys the
+    server's own stated retry delay rather than guessing at the window shape.
     """
+    if llm.provider() == "ollama":
+        for attempt in range(max_attempts):
+            try:
+                vectors = providers.embed(model, texts)
+                return _l2_normalise(np.array(vectors, dtype=np.float32))
+            except providers.ProviderError as exc:
+                if attempt == max_attempts - 1:
+                    raise
+                print(f"    ollama embed retry ({exc})", flush=True)
+                time.sleep(min(3.0 * (2 ** attempt), 30.0))
+
     from google.genai import types
 
     config = types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY", output_dimensionality=dim)
@@ -153,13 +175,13 @@ def _embed_chunk(texts: list[str], model: str, dim: int, max_attempts: int = 10)
     raise RuntimeError("unreachable")
 
 
-def embed_gemini(texts: list[str], *, model: str = llm.MODEL_EMBED, dim: int = EMBED_DIM,
-                 cache: EmbeddingCache | None = None,
-                 on_progress: Callable[[int], None] | None = None) -> np.ndarray:
-    """Embed via Gemini, serving hits from the committed cache.
+def embed_model(texts: list[str], *, model: str = llm.MODEL_EMBED, dim: int = EMBED_DIM,
+                cache: EmbeddingCache | None = None,
+                on_progress: Callable[[int], None] | None = None) -> np.ndarray:
+    """Embed via the configured provider, serving hits from the cache.
 
-    Raises llm.OfflineCacheMiss when texts are uncached and no key is set --
-    same contract as llm.complete(), for the same reason.
+    Raises llm.OfflineCacheMiss when texts are uncached and the backend is not
+    reachable -- same contract as llm.complete(), for the same reason.
     """
     cache = cache if cache is not None else EmbeddingCache()
     keys = [_text_key(t, model, dim) for t in texts]
@@ -227,11 +249,15 @@ def embed(texts: list[str], *, backend: str = "auto", fit_corpus: list[str] | No
     """
     if backend == "tfidf":
         return TfidfSvdEmbedder().fit(fit_corpus or texts).transform(texts)
-    if backend == "gemini":
-        return embed_gemini(texts)
+    if backend in ("gemini", "ollama", "model"):
+        return embed_model(texts)
     if backend != "auto":
         raise ValueError(f"unknown embedding backend: {backend!r}")
     try:
-        return embed_gemini(texts)
+        return embed_model(texts)
     except llm.OfflineCacheMiss:
         return TfidfSvdEmbedder().fit(fit_corpus or texts).transform(texts)
+
+
+# Back-compat alias: earlier revisions called this embed_gemini.
+embed_gemini = embed_model

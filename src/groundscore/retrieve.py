@@ -47,8 +47,14 @@ class Exemplar:
         }
 
 
+def default_backend() -> str:
+    """Embedding backend from configs/brand.yaml (see the note there)."""
+    return config.brand_config()["retrieval"].get("backend", "tfidf")
+
+
 class Retriever:
-    def __init__(self, threads: list[dict], *, backend: str = "auto"):
+    def __init__(self, threads: list[dict], *, backend: str | None = None):
+        backend = backend or default_backend()
         self.threads = threads
         self.backend = backend
         self.messages = [t["customer_msg"] for t in threads]
@@ -98,7 +104,7 @@ class Retriever:
 
 
 @lru_cache(maxsize=4)
-def load_retriever(backend: str = "auto") -> Retriever:
+def load_retriever(backend: str | None = None) -> Retriever:
     """History-split retriever. Cached: rebuilding it re-reads 10k threads."""
     threads = [
         t for t in read_jsonl(config.THREADS_PATH)

@@ -31,6 +31,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from . import providers
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CACHE_PATH = REPO_ROOT / "cache" / "llm_cache.sqlite"
 
@@ -50,16 +52,43 @@ CACHE_PATH = REPO_ROOT / "cache" / "llm_cache.sqlite"
 # The cross-family judge is the honest part: a Gemini judge scoring Gemini
 # drafts cannot rule out self-preference on its own, so the bias is measured
 # against an outside model rather than asserted away. See DECISIONS.md.
-MODEL_FAST = "gemini-3.5-flash"
-MODEL_JUDGE = "gemini-3.7-flash"
-MODEL_JUDGE_CROSS = "gemma-4-31b-it"
-MODEL_EMBED = "gemini-embedding-001"
+GEMINI_FAST = "gemini-3.5-flash"
+GEMINI_JUDGE = "gemini-3.7-flash"
+GEMINI_JUDGE_CROSS = "gemma-4-31b-it"
+GEMINI_EMBED = "gemini-embedding-001"
+
+
+def provider() -> str:
+    return providers.provider_name()
+
+
+def _resolve(role: str) -> str:
+    """Model id for a role under the active provider.
+
+    Roles rather than hard-coded ids, because the drafter/judge/cross-judge
+    split has to hold on both backends: the judge must never be the same model
+    as the drafter, or the reply scores measure a model grading itself.
+    """
+    if provider() == "gemini":
+        return {"fast": GEMINI_FAST, "judge": GEMINI_JUDGE,
+                "cross": GEMINI_JUDGE_CROSS, "embed": GEMINI_EMBED}[role]
+    return {"fast": providers.OLLAMA_FAST, "judge": providers.OLLAMA_JUDGE,
+            "cross": providers.OLLAMA_FAST, "embed": providers.OLLAMA_EMBED}[role]
+
+
+# Resolved once at import so a single run cannot silently mix backends.
+MODEL_FAST = _resolve("fast")
+MODEL_JUDGE = _resolve("judge")
+MODEL_JUDGE_CROSS = _resolve("cross")
+MODEL_EMBED = _resolve("embed")
 
 DEFAULT_TEMPERATURE = 0.0
 
-# Free-tier keys are rate limited per minute. Exceeding the limit costs more
-# wall-clock in backoff than throttling does up front, so calls are paced.
-RPM_LIMIT = int(os.environ.get("GROUNDSCORE_RPM", "10"))
+# Free-tier keys are rate limited per minute. Measured empirically on this key:
+# generate_content starts returning 429 at the 5th call inside a minute, well
+# below the documented allowance. Exceeding the limit costs more wall clock in
+# backoff than pacing does up front, so calls are spaced to stay under it.
+RPM_LIMIT = int(os.environ.get("GROUNDSCORE_RPM", "4"))
 
 
 class OfflineCacheMiss(RuntimeError):
@@ -108,10 +137,11 @@ def _conn() -> sqlite3.Connection:
     return conn
 
 
-def cache_key(model: str, prompt: str, schema: Any, temperature: float, system: str | None) -> str:
+def cache_key(model: str, prompt: str, schema: Any, temperature: float,
+              system: str | None, prov: str | None = None) -> str:
     payload = json.dumps(
         {
-            "provider": "gemini",
+            "provider": prov or provider(),
             "model": model,
             "prompt": prompt,
             "system": system,
@@ -261,6 +291,20 @@ def complete(
     if cached is not None:
         STATS.hits += 1
         return cached
+
+    if provider() == "ollama":
+        if not providers.available():
+            raise OfflineCacheMiss(
+                "Call not in cache and Ollama is not reachable at "
+                f"{providers.OLLAMA_HOST}.\n"
+                "  'make reproduce' must run entirely from the committed cache. Start the\n"
+                "  Ollama app and run 'make full' to regenerate, or revert your change."
+            )
+        STATS.misses += 1
+        text = providers.generate(model, prompt, system=system, schema=schema,
+                                  temperature=temperature)
+        _cache_put(key, model, prompt, text)
+        return text
 
     if not have_key():
         raise OfflineCacheMiss(

@@ -10,7 +10,7 @@ judge validation, and the honest accounting of what the headline number hides.
 
 ---
 
-## Reproduce the headline results (no API key, no Kaggle account)
+## Reproduce the headline results (no API key, no Kaggle account, no GPU)
 
 ```bash
 pip install -r requirements.txt
@@ -19,10 +19,37 @@ make reproduce
 
 `make reproduce` regenerates every table in `results/` from artifacts committed
 to this repository: the 10k-thread corpus subsample, the embedding cache, and
-the LLM response cache. It runs with `GEMINI_API_KEY` **stripped from the
+the model response cache. It runs with API keys **stripped from the
 environment**, so any step that is not fully cached fails loudly rather than
 silently making live calls and producing numbers that differ from the published
 ones. Cache misses must be zero; the script reports them.
+
+### Models
+
+Everything runs on **local models via [Ollama](https://ollama.com)** — no API
+key, no quota, no network:
+
+| Role | Model | Why |
+|---|---|---|
+| classify + draft | `qwen3:4b` | fits a 6GB GPU, follows a JSON schema |
+| judge | `gemma3:4b` | **different family from the drafter**, so reply scores are not a model grading itself |
+| embeddings | `nomic-embed-text` | 768-dim, ~330 texts/min locally |
+
+This was not the original plan. The Gemini free tier turned out to be capped at
+**20 `generate_content` calls per day, per model**
+(`GenerateRequestsPerDayPerProjectPerModel-FreeTier`), against a workload of
+roughly a thousand — so the hosted API could not run this evaluation at all.
+Going local removed the ceiling and, as a side effect, made the judge a
+genuinely independent model family and the whole pipeline reproducible without
+credentials. The cost is capability: a 4B model is weaker than a hosted frontier
+model, and the report attributes reply-quality limits to that rather than to the
+architecture. Gemini remains supported via `GROUNDSCORE_PROVIDER=gemini`.
+
+Only needed to *regenerate* results:
+
+```bash
+ollama pull qwen3:4b && ollama pull gemma3:4b && ollama pull nomic-embed-text
+```
 
 ```bash
 make test     # property tests: leakage, split stability, cache, routing rules
@@ -65,7 +92,7 @@ auto-reply is permanent. So the harness reports:
 - and the **coverage vs. false-auto curve** over the confidence threshold,
   so the operating point is visible rather than implied.
 
-Every headline number carries a bootstrap 95% CI. With 120 test examples those
+Every headline number carries a bootstrap 95% CI. With ~90 test examples those
 intervals are wide, and the report says so instead of quoting three decimals.
 
 **Reply quality** is scored by an LLM judge against `eval/judge_rubric.md`
@@ -96,7 +123,7 @@ scored.
 
 ## Golden set
 
-200 hand-adjudicated examples from threads held out of the retrieval index
+150 hand-adjudicated examples from threads held out of the retrieval index
 entirely. Sampling and labelling procedure, including its limitations, is in
 [`data/golden/LABELING_NOTES.md`](data/golden/LABELING_NOTES.md).
 
@@ -119,9 +146,10 @@ label was written.
   full point high
 - **verbosity probe**: identical replies re-judged with filler appended; any
   score movement is length bias
-- **self-preference probe**: the same replies re-judged by a different model
-  family (`gemma-4-31b-it`), bounding how much of the score is a Gemini judge
-  liking Gemini prose
+- **self-preference probe**: drafter and judge are already different families
+  (`qwen3:4b` vs `gemma3:4b`), so this is a check rather than a correction —
+  it re-scores a subset with the drafter's own model to confirm the gap that
+  a same-family judge would have introduced
 
 Human scores are collected *before* judge output is read; the CLI refuses to
 run otherwise.
@@ -130,13 +158,14 @@ run otherwise.
 
 ## Full rebuild from raw data
 
-Needs `GEMINI_API_KEY` in `.env`. The free tier meters embeddings at roughly
-100 texts/minute, so the embedding step alone takes ~90 minutes.
+Needs Ollama running with the three models above. The embedding step takes
+~30 minutes for 10k messages; the evaluation is bounded by local generation
+speed rather than by any quota.
 
 ```bash
 make full            # download -> corpus -> embeddings -> intent clusters
                      # then merge taxonomy/intents.draft.yaml -> intents.yaml by hand
-make golden          # sample 200 candidates with weak labels
+make golden          # sample 150 candidates with weak labels
 make label           # adjudicate by hand (interactive)
 make relabel         # blind re-label of 50, for intra-annotator kappa
 make tune            # fit routing thresholds on dev
@@ -160,7 +189,7 @@ configs/thresholds.yaml     routing thresholds, fitted on dev, frozen
 taxonomy/intents.yaml       intent definitions — classifier prompt AND annotator guide
 data/processed/threads.jsonl  committed 10k-thread corpus subsample
 data/golden/                golden set + labelling notes
-cache/                      committed LLM + embedding caches (keyless reproduction)
+cache/                      committed model + embedding caches (keyless reproduction)
 src/groundscore/            ingest, cleaning, retrieval, agent stages, baselines
 eval/                       metrics, judge, judge validation, threshold tuning
 tools/                      labelling and human-scoring CLIs
