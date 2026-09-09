@@ -1,0 +1,47 @@
+# Brand selection and corpus construction.
+#
+# The brand was chosen from measured evidence (results/brand_profile.md), not
+# from intuition. The pre-registered guess before profiling was SpotifyCares;
+# the data rejected it (37.4% deflection rate -- 47x AmazonHelp's -- meaning
+# more than a third of its public replies are "please DM us", which makes
+# "draft a grounded reply" a task with nothing to ground in).
+#
+# AmazonHelp wins on the three statistics that matter for this assignment:
+#   deflection_rate    0.008  (near-lowest: replies contain real instructions)
+#   lexical_diversity  0.183  (HIGHEST by a wide margin: genuine intent variety,
+#                              so the taxonomy is a real problem, not 4 classes)
+#   multi_turn_rate    0.597  (HIGHEST: customers actually reply, so whether the
+#                              brand's answer resolved anything is observable)
+#
+# hulu_support scores higher on substantive_rate (0.978 vs 0.803) but its
+# lexical diversity is 0.124 and its multi-turn rate 0.383 -- a narrow intent
+# space that would collapse to ~4 classes and make the classification result
+# uninformatively easy. Recorded in DECISIONS.md.
+
+brand: AmazonHelp
+
+corpus:
+  # Threads pulled before filtering. Roughly 25% are dropped by the usability
+  # filter (too short, non-Latin, no brand reply), landing near the 8k target.
+  max_threads: 11000
+  seed: 42
+
+split:
+  # Stable-hash buckets in [0, 100). The golden pool is held out of the
+  # retrieval index entirely -- without this the agent can retrieve the very
+  # thread it is being evaluated on and score its own answer key.
+  golden_pool_buckets: 6        # ~6% -> ~480 threads to sample 200 from
+  # Everything else becomes the retrieval corpus.
+
+golden:
+  target_size: 200
+  # Sampling strata, documented in data/golden/LABELING_NOTES.md
+  proportional_share: 0.60      # mirrors real traffic mix
+  rare_intent_share: 0.25       # inverse-frequency oversample of tail classes
+  adversarial_share: 0.15       # hand-picked hard cases, scored separately
+  dev_share: 0.40               # thresholds + prompts tuned here only
+  seed: 42
+
+retrieval:
+  top_k: 5
+  embedding_dim: 768

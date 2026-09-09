@@ -22,7 +22,10 @@ that is done here rather than at call sites.
 from __future__ import annotations
 
 import hashlib
+import re
+import time
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 
@@ -35,7 +38,9 @@ EMB_CACHE_PATH = REPO_ROOT / "cache" / "emb_cache.npz"
 # a marginal retrieval-quality cost on short tweets, and the repo has to stay
 # clonable. Documented in DECISIONS.md.
 EMBED_DIM = 768
-_BATCH = 100  # Gemini embed_content batch ceiling
+_BATCH = 50  # texts per request; the free tier meters ~100 texts/min, so a
+              # 100-text request needs a perfectly empty window and starves on
+              # retry. 50 leaves headroom for two requests per window.
 
 
 def _text_key(text: str, model: str, dim: int) -> str:
@@ -65,10 +70,14 @@ class EmbeddingCache:
             return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         ordered = sorted(self.keys.items(), key=lambda kv: kv[1])
+        # float16 on disk: these are L2-normalised unit vectors, so every
+        # component is in [-1, 1] where fp16 has ~3 decimal digits of precision.
+        # That is far below the noise floor of cosine *ranking* over 9k short
+        # texts, and it halves a cache that has to be committed to the repo.
         np.savez_compressed(
             self.path,
             keys=np.array([k for k, _ in ordered]),
-            vectors=self.matrix,
+            vectors=self.matrix.astype(np.float16),
         )
         self._dirty = False
 
@@ -95,26 +104,58 @@ def _l2_normalise(mat: np.ndarray) -> np.ndarray:
     return (mat / norms).astype(np.float32)
 
 
-def _embed_gemini_uncached(texts: list[str], model: str, dim: int) -> np.ndarray:
+def _retry_delay_seconds(message: str, fallback: float = 30.0) -> float:
+    """Pull Google's own 'Please retry in 29.2s' hint out of a 429 body.
+
+    Obeying the server's stated delay beats guessing at the quota shape: the
+    free tier meters embeddings at 100 requests/minute, but a batched call
+    appears to be charged per text rather than per request, so the effective
+    ceiling is not something the client can compute up front.
+    """
+    match = re.search(r"[Pp]lease retry in ([0-9.]+)s", message)
+    if match:
+        return float(match.group(1)) + 2.0
+    match = re.search(r"retryDelay['\"]?:\s*['\"]?(\d+)s", message)
+    if match:
+        return float(match.group(1)) + 2.0
+    return fallback
+
+
+def _embed_chunk(texts: list[str], model: str, dim: int, max_attempts: int = 10) -> np.ndarray:
+    """Embed one request's worth of texts, retrying quota AND transport errors.
+
+    Transport errors matter as much as quota here: a single transient DNS or
+    connection failure part-way through a 10k-text run would otherwise abort
+    the whole job and discard an hour of rate-limited progress.
+    """
     from google.genai import types
 
-    out: list[list[float]] = []
-    for i in range(0, len(texts), _BATCH):
-        chunk = texts[i : i + _BATCH]
-        resp = llm._get_client().models.embed_content(
-            model=model,
-            contents=chunk,
-            config=types.EmbedContentConfig(
-                task_type="SEMANTIC_SIMILARITY",
-                output_dimensionality=dim,
-            ),
-        )
-        out.extend(e.values for e in resp.embeddings)
-    return _l2_normalise(np.array(out, dtype=np.float32))
+    config = types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY", output_dimensionality=dim)
+
+    for attempt in range(max_attempts):
+        try:
+            resp = llm._get_client().models.embed_content(
+                model=model, contents=texts, config=config
+            )
+            return _l2_normalise(np.array([e.values for e in resp.embeddings], dtype=np.float32))
+        except Exception as exc:  # noqa: BLE001 - classified below
+            message = str(exc)
+            is_quota = "429" in message or "RESOURCE_EXHAUSTED" in message
+            is_network = isinstance(exc, (OSError, ConnectionError)) or any(
+                s in type(exc).__name__ for s in ("Connect", "Timeout", "Transport", "Remote")
+            ) or "getaddrinfo" in message
+            if attempt == max_attempts - 1 or not (is_quota or is_network):
+                raise
+            delay = _retry_delay_seconds(message) if is_quota else min(5.0 * (2 ** attempt), 120.0)
+            reason = "quota" if is_quota else f"network ({type(exc).__name__})"
+            print(f"    {reason}, sleeping {delay:.0f}s", flush=True)
+            time.sleep(delay)
+    raise RuntimeError("unreachable")
 
 
 def embed_gemini(texts: list[str], *, model: str = llm.MODEL_EMBED, dim: int = EMBED_DIM,
-                 cache: EmbeddingCache | None = None) -> np.ndarray:
+                 cache: EmbeddingCache | None = None,
+                 on_progress: Callable[[int], None] | None = None) -> np.ndarray:
     """Embed via Gemini, serving hits from the committed cache.
 
     Raises llm.OfflineCacheMiss when texts are uncached and no key is set --
@@ -132,13 +173,18 @@ def embed_gemini(texts: list[str], *, model: str = llm.MODEL_EMBED, dim: int = E
                 "  Set a key and run 'make full' to regenerate, or use backend='tfidf'."
             )
         # Deduplicate before spending API calls: threads repeat boilerplate.
-        uniq: dict[str, list[int]] = {}
-        for i in missing_idx:
-            uniq.setdefault(texts[i], []).append(i)
-        uniq_texts = list(uniq.keys())
-        vectors = _embed_gemini_uncached(uniq_texts, model, dim)
-        cache.put_many([_text_key(t, model, dim) for t in uniq_texts], vectors)
-        cache.save()
+        uniq_texts = list(dict.fromkeys(texts[i] for i in missing_idx))
+
+        # Persist after EVERY request, not at the end. This run is rate limited
+        # to roughly 100 texts/minute, so a failure near the end of a 10k-text
+        # job would otherwise throw away an hour of quota.
+        for start in range(0, len(uniq_texts), _BATCH):
+            chunk = uniq_texts[start : start + _BATCH]
+            vectors = _embed_chunk(chunk, model, dim)
+            cache.put_many([_text_key(t, model, dim) for t in chunk], vectors)
+            cache.save()
+            if on_progress:
+                on_progress(len(chunk))
 
     return np.vstack([cache.get(k) for k in keys]).astype(np.float32)
 
