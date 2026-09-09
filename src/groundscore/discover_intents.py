@@ -32,8 +32,14 @@ import yaml
 from . import config, embed, llm
 from .ingest import read_jsonl
 
-K_RANGE = range(8, 25)
-SILHOUETTE_SAMPLE = 3000
+# Sweeping every k from 8 to 24 with n_init=10 means 170 KMeans fits over
+# 9.4k x 256 vectors, which took over 45 minutes and told us nothing the
+# coarser sweep does not. Step 2 and a smaller n_init give the same argmax at a
+# fraction of the cost; the chosen k is a starting point for a human merge, not
+# a precision measurement.
+K_RANGE = range(8, 23, 2)
+KMEANS_N_INIT = 4
+SILHOUETTE_SAMPLE = 2000
 EXEMPLARS_PER_CLUSTER = 25
 SEED = 42
 
@@ -109,7 +115,7 @@ def choose_k(vectors: np.ndarray, k_range=K_RANGE, seed: int = SEED) -> tuple[in
 
     scores = []
     for k in k_range:
-        model = KMeans(n_clusters=k, random_state=seed, n_init=10).fit(vectors)
+        model = KMeans(n_clusters=k, random_state=seed, n_init=KMEANS_N_INIT).fit(vectors)
         score = float(silhouette_score(sample, model.labels_[idx], metric="cosine"))
         scores.append({"k": k, "silhouette": round(score, 4),
                        "inertia": round(float(model.inertia_), 2)})
@@ -134,11 +140,12 @@ def summarise_cluster(brand: str, messages: list[str]) -> dict:
     )
 
 
-def discover(k: int | None = None, backend: str = "auto") -> dict:
+def discover(k: int | None = None, backend: str | None = None) -> dict:
     threads = [t for t in read_jsonl(config.THREADS_PATH)
                if t.get("split") == config.SPLIT_HISTORY]
     messages = [t["customer_msg"] for t in threads]
     brand = config.brand()
+    backend = backend or config.brand_config()["retrieval"].get("backend", "tfidf")
 
     print(f"Embedding {len(messages)} messages...")
     vectors = embed.embed(messages, backend=backend, fit_corpus=messages)
@@ -152,7 +159,7 @@ def discover(k: int | None = None, backend: str = "auto") -> dict:
 
     from sklearn.cluster import KMeans
 
-    model = KMeans(n_clusters=k, random_state=SEED, n_init=10).fit(vectors)
+    model = KMeans(n_clusters=k, random_state=SEED, n_init=KMEANS_N_INIT).fit(vectors)
     labels = model.labels_
     counts = Counter(labels.tolist())
 

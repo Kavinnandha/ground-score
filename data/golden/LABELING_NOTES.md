@@ -1,6 +1,6 @@
 # Golden set: how it was sampled and labelled
 
-200 examples from AmazonHelp threads that were **held out of the retrieval
+150 examples from AmazonHelp threads that were **held out of the retrieval
 index entirely** (`split: golden_pool`, ~6% of the corpus by stable thread-id
 hash). The agent cannot retrieve any thread it is evaluated on;
 `tests/test_pipeline.py::test_no_leakage_between_retrieval_index_and_golden_pool`
@@ -16,9 +16,17 @@ evaluation would be blind to exactly the classes it is worst at.
 
 | Stratum | Share | Draw | What it is for |
 |---|---|---|---|
-| `proportional` | 60% (120) | proportional to cluster size | the only stratum that estimates **real traffic** performance |
-| `rare` | 25% (50) | inverse-frequency over clusters | keeps macro-F1 on tail classes from being estimated off 2–3 examples |
-| `adversarial` | 15% (30) | heuristic hard-case selection | the cases where auto-reply actually hurts |
+| `proportional` | 60% (90) | proportional to cluster size | the only stratum that estimates **real traffic** performance |
+| `rare` | 25% (38) | inverse-frequency over clusters | keeps macro-F1 on tail classes from being estimated off 2–3 examples |
+| `adversarial` | 15% (22) | heuristic hard-case selection | the cases where auto-reply actually hurts |
+
+**On the size: 150, not 200.** The brief allows 150–250. The Gemini free tier on
+this key meters `generate_content` at roughly 5 requests/minute (measured, not
+quoted from docs), which puts the full evaluation at several hours of wall
+clock. 150 was chosen to keep the whole pipeline runnable end-to-end rather than
+to make any number look better. The cost is entirely in statistical power, and
+it is reported: the test split is 90 examples, so confidence intervals are wide
+and small differences between systems are not resolvable.
 
 Adversarial selection is by **surface heuristics, not model difficulty**: very
 short (<40 chars), >70% caps, ≥3 emoji, ≥2 question marks, rage markers
@@ -33,7 +41,7 @@ The report leads with the traffic-weighted (`proportional`) number.
 
 ## Dev/test split
 
-40% dev (80) / 60% test (120), assigned by stable hash of the thread id
+40% dev (~60) / 60% test (~90), assigned by stable hash of the thread id
 **at sampling time, before any label was written**. It therefore cannot have
 been chosen after seeing which split flattered the results.
 
@@ -53,7 +61,7 @@ Fields recorded per example: `intent`, `action` (auto/escalate),
 `escalation_reason`, `annotator_confidence` (1–3), `note`,
 `overrode_weak_label`.
 
-**Why pre-fill, and what it costs.** Typing 200 labels cold invites fatigue
+**Why pre-fill, and what it costs.** Typing 150 labels cold invites fatigue
 drift — the last fifty get less care than the first fifty. Adjudicating a
 proposal is faster and more consistent. The cost is anchoring: the annotator is
 pulled toward the proposal. That cost is measured rather than denied — the

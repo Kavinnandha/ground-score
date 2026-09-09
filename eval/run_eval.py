@@ -105,6 +105,15 @@ def score_system(rows: list[dict], outputs: list[dict]) -> dict:
             ).as_dict(),
         }
     result["per_stratum"] = per_stratum
+
+    # The no-retrieval ablation has no exemplars, so the grounding and
+    # similarity rules fire on every example and it escalates 100% by
+    # construction. That is the correct safety behaviour, not a bug, but its
+    # routing numbers are therefore degenerate and must not be read as a
+    # comparison. Flagged here so the table cannot be misread.
+    if all(by_id[r["thread_id"]]["action"] == "escalate" for r in rows):
+        result["routing_note"] = (
+            "escalates every example; routing metrics are degenerate by construction")
     return result
 
 
@@ -133,6 +142,12 @@ def main() -> int:
                         help="required to score the test split; logs a timestamped record")
     parser.add_argument("--no-judge", action="store_true", help="skip LLM-as-judge scoring")
     parser.add_argument("--no-llm", action="store_true", help="baselines only (no API calls)")
+    parser.add_argument(
+        "--judge-systems", default="",
+        help="comma-separated systems to judge. Default: 'agent' on dev (enough to "
+             "validate the judge against a human), all systems on test (the headline "
+             "comparison). Judging every system on both splits is ~600 calls, which at "
+             "the free tier's ~5 RPM is 2+ hours for no extra information.")
     args = parser.parse_args()
 
     if args.split == "test" and not args.final:
@@ -173,10 +188,30 @@ def main() -> int:
 
     if not args.no_judge and not args.no_llm:
         print("\n-- judging replies")
+
+        # Every system's reply is judged against the SAME precedent set: the one
+        # the retrieval-enabled agent saw for that message. Judging each system
+        # against its own retrieved context would make groundedness
+        # incomparable -- the no-retrieval ablation has no precedent at all, so
+        # it would be scored against an empty evidence set and could not lose
+        # marks for inventing policy. The canonical set makes "is this claim
+        # supported by what the brand has actually said?" the same question for
+        # every system.
+        canonical = {o["thread_id"]: o.get("exemplars", [])
+                     for o in all_outputs.get("agent", [])}
+
+        judge_systems = args.judge_systems.split(",") if args.judge_systems else (
+            ["agent"] if args.split == "dev" else list(all_outputs))
+
         for name, outputs in all_outputs.items():
             if name == "trivial_always_escalate":
                 continue  # produces no replies to judge
+            if name not in judge_systems:
+                continue
             print(f"   {name}")
+            if canonical:
+                outputs = [{**o, "exemplars": canonical.get(o["thread_id"], o.get("exemplars", []))}
+                           for o in outputs]
             scores = judge_outputs(outputs, on_progress=lambda i, t: (
                 print(f"     {i}/{t}", flush=True) if i % 20 == 0 or i == t else None))
             write_scores(scores, config.RESULTS_DIR / f"judge_{args.split}_{name}.jsonl")

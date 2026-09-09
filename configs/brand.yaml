@@ -2,21 +2,26 @@
 #
 # The brand was chosen from measured evidence (results/brand_profile.md), not
 # from intuition. The pre-registered guess before profiling was SpotifyCares;
-# the data rejected it (37.4% deflection rate -- 47x AmazonHelp's -- meaning
-# more than a third of its public replies are "please DM us", which makes
-# "draft a grounded reply" a task with nothing to ground in).
+# the data rejected it (37.7% handoff rate -- 3.5x AmazonHelp's -- meaning more
+# than a third of its public replies are "please DM us", which makes "draft a
+# grounded reply" a task with nothing to ground in).
+#
+# NOTE: the first version of the profiler measured only DM-style deflection and
+# reported AmazonHelp at 0.008. That undercounted by 13x -- AmazonHelp rarely
+# says "DM us" and instead routes people to a contact page. The corrected
+# handoff_rate below is the union of both forms. The ranking survived the fix.
 #
 # AmazonHelp wins on the three statistics that matter for this assignment:
-#   deflection_rate    0.008  (near-lowest: replies contain real instructions)
+#   handoff_rate       0.108  (2nd lowest: replies mostly contain real content)
 #   lexical_diversity  0.183  (HIGHEST by a wide margin: genuine intent variety,
 #                              so the taxonomy is a real problem, not 4 classes)
 #   multi_turn_rate    0.597  (HIGHEST: customers actually reply, so whether the
 #                              brand's answer resolved anything is observable)
 #
-# hulu_support scores higher on substantive_rate (0.978 vs 0.803) but its
-# lexical diversity is 0.124 and its multi-turn rate 0.383 -- a narrow intent
-# space that would collapse to ~4 classes and make the classification result
-# uninformatively easy. Recorded in DECISIONS.md.
+# hulu_support has a lower handoff rate (0.057) and higher substantive rate
+# (0.927) but its lexical diversity is 0.124 and its multi-turn rate 0.383 -- a
+# narrow intent space that would collapse to ~4 classes and make the
+# classification result uninformatively easy. Recorded in DECISIONS.md.
 
 brand: AmazonHelp
 
@@ -34,7 +39,7 @@ split:
   # Everything else becomes the retrieval corpus.
 
 golden:
-  target_size: 200
+  target_size: 150   # brief allows 150-250; see DECISIONS.md on the API budget
   # Sampling strata, documented in data/golden/LABELING_NOTES.md
   proportional_share: 0.60      # mirrors real traffic mix
   rare_intent_share: 0.25       # inverse-frequency oversample of tail classes
@@ -45,3 +50,25 @@ golden:
 retrieval:
   top_k: 5
   embedding_dim: 768
+
+  # Embedding backend for the retrieval index and for intent clustering.
+  #
+  # 'tfidf'  char-ngram TF-IDF + TruncatedSVD (scikit-learn only)
+  # 'gemini' gemini-embedding-001, cached to cache/emb_cache.npz
+  #
+  # Shipped default is tfidf, and that is a constraint talking, not a
+  # preference. The free-tier embedding quota on this key admits roughly 100
+  # texts/minute in theory and far less in practice -- repeated runs stalled
+  # after 40-650 of the 10,026 messages, with the server returning 429s and
+  # retry hints it then did not honour. Embedding the corpus was not achievable
+  # in the time available.
+  #
+  # The trade is real and is reported rather than buried: char n-grams match
+  # surface form, so "can't log in" and "password reset loop" stay further apart
+  # than they should. Spot checks (see REPORT.md) show retrieval is still
+  # returning topically-correct precedent with usable similarity margins.
+  #
+  # Two things this accidentally improves: `make reproduce` now needs no
+  # embedding cache at all, and the repo stays small. Switch to 'gemini' and run
+  # `make embeddings` with a paid-tier key to use the better backend.
+  backend: ollama

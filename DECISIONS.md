@@ -7,19 +7,34 @@ they affect the numbers.
 
 **1. The brand was chosen by measurement, and the measurement overruled my guess.**
 Before profiling I expected to pick `SpotifyCares`. The profiler
-(`results/brand_profile.md`) rejected it: 37.4% of its first replies are pure
-deflection ("please DM us") versus 0.8% for `AmazonHelp` — 47×. On a
-deflecting brand, "draft a reply grounded in how the brand historically
-resolved this" degenerates into learning to emit a non-answer, and every
-reply-quality metric silently becomes a measure of deflection mimicry. The
-deciding statistic was deflection rate, not volume.
+(`results/brand_profile.md`) rejected it: 37.7% of its first replies hand the
+customer off rather than answer, versus 10.8% for `AmazonHelp`. On a deflecting
+brand, "draft a reply grounded in how the brand historically resolved this"
+degenerates into learning to emit a non-answer, and every reply-quality metric
+silently becomes a measure of deflection mimicry. The deciding statistic was
+handoff rate, not volume.
 
-**2. AmazonHelp over hulu_support, despite hulu scoring higher on reply substance.**
-hulu_support has a better substantive rate (0.978 vs 0.803) but lexical
-diversity of 0.124 vs AmazonHelp's 0.183 and a multi-turn rate of 0.383 vs
-0.597. Its intent space collapses to about four classes — the classification
-task would have been uninformatively easy, and with few customer follow-ups
-there is little signal about whether a reply resolved anything.
+**1b. That metric was wrong the first time, and fixing it is part of the record.**
+The original profiler counted only DM-style deflection ("DM us", "send us a
+message") and scored AmazonHelp at 0.008. Reading actual retrieved replies
+showed the real pattern: AmazonHelp almost never says "DM us", it says *"please
+reach out to us here: <URL>"*. Measuring both forms moved AmazonHelp from 0.8%
+to 10.8% — a 13× undercount. The brand ranking survived the correction
+(Spotify 37.7%, Apple 55.1%, Uber 75.0%), so the decision stands, but it stands
+on a number that was wrong until it was checked against the raw text. A bare
+URL is deliberately *not* counted: 46% of AmazonHelp replies contain one and
+most are genuinely useful (tracking pages, help articles), so the rule requires
+a contact verb as well.
+
+**2. AmazonHelp over hulu_support, despite hulu scoring better on reply substance.**
+hulu_support has a lower handoff rate (0.057 vs 0.108) and a higher substantive
+rate (0.927 vs 0.716), so on the deciding statistic alone it would win. It was
+rejected on the other two columns: lexical diversity 0.124 vs 0.183, multi-turn
+rate 0.383 vs 0.597. Its intent space collapses to roughly four classes — the
+classification task would have been uninformatively easy — and with few customer
+follow-ups there is little signal about whether a reply resolved anything. This
+is the one place the brand choice is a judgement call rather than a
+measurement, and it is worth flagging as such.
 
 **3. Caches are committed, and a cache miss is fatal rather than a fallback.**
 `make reproduce` runs with the API key stripped from the environment. Any
@@ -27,20 +42,22 @@ uncached call raises `OfflineCacheMiss` instead of silently going live. A
 silent fallback would let a reviewer's run diverge from the published numbers
 while appearing to succeed — the exact failure this design exists to prevent.
 
-**4. Gemini embeddings instead of sentence-transformers.**
-The dev machine runs Python 3.14, which has no PyTorch wheels. Rather than pin
-an older interpreter and complicate setup, embeddings come from the API and are
-cached to a committed `.npz`. A pure-sklearn TF-IDF+SVD backend remains as a
-keyless fallback so every path is runnable with no key and no cache at all.
+**4. No sentence-transformers, because Python 3.14 has no PyTorch wheels.**
+The obvious default for short-text similarity is `all-MiniLM`. It is
+unavailable on this interpreter, and pinning an older Python to get it would
+complicate setup for every reviewer. That left two options: the Gemini
+embeddings API, or pure-sklearn TF-IDF+SVD. Both are implemented and
+selectable. Which one actually ships is decided in **#22** — by quota, not
+preference.
 
-**5. Judge tiering was forced by quota, and the workaround is better than the plan.**
-The plan was flash drafts / pro judge. This API key returns 429 on every `*-pro`
-model. So: drafter `gemini-3.5-flash`, judge `gemini-3.7-flash` (different
-generation), plus a **cross-family judge on `gemma-4-31b-it`** — different
-weights, different family — run on a subset. A Gemini judge grading Gemini
-drafts cannot rule out self-preference on its own; an outside-family judge
-gives a measurable upper bound on it. That probe is a genuine improvement over
-the original plan.
+**5. The judge is a different model family from the drafter, by construction.**
+The original plan was flash drafts / pro judge; the key had no pro quota, and
+then the daily cap (#22) moved everything local anyway. The end state is better
+than the plan: drafter `qwen3:4b`, judge `gemma3:4b` — different families,
+different training data, different weights. A model grading its own output
+cannot rule out self-preference; two unrelated families largely removes it
+rather than merely measuring it. The cross-family probe in
+`eval/judge_agreement.py` is retained as a check that this held.
 
 **6. Evaluation threads are excluded from the retrieval index by construction.**
 Split assignment is a stable SHA-256 bucket of the thread id, computed at
@@ -136,6 +153,75 @@ kind of thing that looks arbitrary in code review.
 Scoring replies after reading the judge's opinion of them produces agreement
 numbers that mean nothing. The guard is overridable with `--allow-after`, which
 must then be disclosed.
+
+**22. Everything runs on local models via Ollama, because the Gemini free tier is capped at 20 calls/day.**
+This is the largest decision in the project and it was forced by a number that
+took a while to surface. The free tier's real limit is not a rate but a daily
+budget: `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, **limit 20** — twenty
+`generate_content` calls per day, per model. A full evaluation here needs on the
+order of a thousand. Even spread across all six reachable Gemini models the
+ceiling is ~120/day, so the hosted API was never going to complete this work,
+however carefully the calls were paced.
+
+So generation runs on `qwen3:4b` and embeddings on `nomic-embed-text`, both
+local. Three things improve as a result:
+
+  * **Reproducibility gets stronger, not weaker.** A reviewer with the same
+    model tags reproduces the outputs. No key, no billing, no rate limit, and
+    no model deprecation invalidating the cache later.
+  * **The judge becomes genuinely independent.** Drafter is Qwen, judge is
+    Gemma — different families, different weights. The original design could
+    only *measure* same-family self-preference; this largely removes it by
+    construction, and the cross-family probe becomes a check rather than a
+    caveat.
+  * **Volume stops being rationed.** Bias probes and ablations become free, so
+    the evaluation can be thorough.
+
+The cost is capability: a 4B local model is clearly weaker than Gemini flash at
+instruction-following and JSON discipline. That shows up directly in reply
+quality, and the report attributes it to the model rather than implying the
+architecture is the ceiling. The Gemini path stays implemented and is one
+environment variable away (`GROUNDSCORE_PROVIDER=gemini`).
+
+**22b. TF-IDF was the shipped retrieval backend for part of this build, and is now the fallback.**
+The free-tier embedding endpoint advertises 100 texts/minute. In practice three
+separate runs stalled after 40, 600 and 650 of the 10,026 messages, with the
+server returning 429s carrying retry hints it then did not honour. Embedding the
+corpus was not achievable that way. TF-IDF + TruncatedSVD carried the pipeline
+until local `nomic-embed-text` turned out to be already installed and to run at
+~324 texts/minute with no quota at all, which is strictly better: real semantic
+embeddings, so paraphrases actually match. TF-IDF remains as the keyless
+fallback for anyone with neither a key nor Ollama, and it is still what the
+`tfidf` backend selects. Its weakness is real and worth stating: char n-grams
+match surface form, so "can't log in" and "password reset loop" sit further
+apart than they should.
+
+**23. Classification and drafting share one model call.**
+Originally a response to Gemini's rate limit; kept after the move to local
+models because a 4B model on a 6GB GPU is the new bottleneck and the argument
+is unchanged. Running classify and draft as separate calls doubles the wall
+clock of every evaluation. They share their entire context and
+the drafter needs the intent anyway, so `respond.py` merges them. The split path
+is kept and still works. What is given up is disclosed rather than glossed: the
+model sees the drafting instructions before committing to an intent, so the
+intent label is no longer independent of the reply, and a fluent draft can
+rationalise its own label.
+
+**24. The golden set is 150, not 200.**
+The brief allows 150–250. At ~5 RPM the full design ran to roughly 8 hours of
+API time. 150 keeps the whole pipeline runnable end to end. The cost is
+statistical power only — the test split is 90 examples, so the confidence
+intervals are wide and small between-system differences are not resolvable. That
+is stated in the report rather than papered over, and it was chosen before any
+result was seen, not after.
+
+**25. The k-sweep for clustering was cut from 17 values to 8.**
+The original sweep (k = 8..24, `n_init=10`) is 170 KMeans fits over 9.4k x 256
+vectors and ran for over 45 minutes without finishing. Stepping k by 2 with
+`n_init=4` gives the same argmax far faster. Silhouette on short-text embeddings
+rises monotonically with k in this range anyway, so the sweep is a starting
+point for the human merge, not a precise model-selection result — treating it as
+the latter would be over-reading a weak signal.
 
 ---
 

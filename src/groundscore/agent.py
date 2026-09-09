@@ -17,7 +17,7 @@ from typing import Callable, Iterable
 from . import classify as classify_mod
 from . import config
 from . import draft as draft_mod
-from . import llm, route
+from . import llm, respond, route
 from .retrieve import Exemplar, Retriever
 
 
@@ -69,6 +69,7 @@ class SupportAgent:
         use_llm_router: bool = True,
         model: str = llm.MODEL_FAST,
         name: str = "agent",
+        combined: bool = True,
     ):
         self.retriever = retriever
         self.brand = brand or config.brand()
@@ -76,6 +77,9 @@ class SupportAgent:
         self.use_llm_router = use_llm_router
         self.model = model
         self.name = name
+        # One call for classify+draft instead of two. See respond.py -- this is
+        # an API-budget decision, and the split path below still works.
+        self.combined = combined
 
     def _retrieve(self, message: str) -> list[Exemplar]:
         if self.retriever is None:
@@ -85,11 +89,16 @@ class SupportAgent:
     def handle(self, thread_id: str, message: str) -> AgentOutput:
         exemplars = self._retrieve(message)
 
-        classification = classify_mod.classify(message, exemplars, self.brand, model=self.model)
-        draft = draft_mod.draft_reply(
-            message, exemplars, self.brand,
-            classification.intent, classification.confidence, model=self.model,
-        )
+        if self.combined:
+            classification, draft = respond.respond(
+                message, exemplars, self.brand, model=self.model)
+        else:
+            classification = classify_mod.classify(
+                message, exemplars, self.brand, model=self.model)
+            draft = draft_mod.draft_reply(
+                message, exemplars, self.brand,
+                classification.intent, classification.confidence, model=self.model,
+            )
         decision = route.route(
             message, classification, draft,
             use_llm=self.use_llm_router, model=self.model,
@@ -112,6 +121,7 @@ class SupportAgent:
             exemplars=[e.as_dict() for e in exemplars],
             diagnostics={
                 "system": self.name,
+                "combined_call": self.combined,
                 "classification": classification.as_dict(),
                 "draft": draft.as_dict(),
                 "forced_escalation": route.forced_escalation(message, classification, draft),

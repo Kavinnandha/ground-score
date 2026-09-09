@@ -68,7 +68,7 @@ def adversarial_tags(message: str) -> list[str]:
     return [name for name, test in ADVERSARIAL_TESTS if test(message)]
 
 
-def assign_clusters(messages: list[str], backend: str = "auto") -> np.ndarray:
+def assign_clusters(messages: list[str], backend: str | None = None) -> np.ndarray:
     path = config.CACHE_DIR / "cluster_centroids.npz"
     if not path.exists():
         raise FileNotFoundError(
@@ -76,7 +76,20 @@ def assign_clusters(messages: list[str], backend: str = "auto") -> np.ndarray:
         )
     with np.load(path) as data:
         centroids = data["centroids"].astype(np.float32)
-    vectors = embed.embed(messages, backend=backend, fit_corpus=messages)
+    backend = backend or config.brand_config()["retrieval"].get("backend", "tfidf")
+
+    if backend == "tfidf":
+        # The centroids live in the SVD space fitted on the HISTORY split by
+        # discover_intents. Re-fitting on the golden pool would produce a
+        # different basis, so the pool has to be projected through a model
+        # fitted on the same corpus. Both fits are seeded, so this reproduces
+        # the clustering space exactly.
+        history = [t["customer_msg"] for t in retrieve.load_retriever().threads]
+        model = embed.TfidfSvdEmbedder().fit(history)
+        vectors = model.transform(messages)
+    else:
+        vectors = embed.embed(messages, backend=backend)
+
     if vectors.shape[1] != centroids.shape[1]:
         raise RuntimeError(
             "embedding dimension does not match saved centroids -- the cluster "

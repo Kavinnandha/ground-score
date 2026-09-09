@@ -41,7 +41,11 @@ def main() -> int:
         print("nothing to do")
         return 0
 
-    if not llm.have_key():
+    from groundscore import providers
+    if llm.provider() == "ollama" and not providers.available():
+        print(f"Ollama not reachable at {providers.OLLAMA_HOST}. Start the Ollama app.")
+        return 1
+    if llm.provider() == "gemini" and not llm.have_key():
         print("GEMINI_API_KEY unset -- cannot embed. Set it in .env and retry.")
         return 1
 
@@ -58,7 +62,7 @@ def main() -> int:
 
     # embed_gemini checkpoints the cache after every request, so an interrupted
     # or crashed run resumes from where it stopped rather than re-spending quota.
-    embed.embed_gemini(todo, cache=cache, on_progress=progress)
+    embed.embed_model(todo, cache=cache, on_progress=progress)
 
     cache.save()
     size_mb = embed.EMB_CACHE_PATH.stat().st_size / 1e6

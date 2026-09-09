@@ -26,7 +26,6 @@ sys.path.insert(0, str(ROOT / "src"))
 
 REQUIRED = [
     ("data/processed/threads.jsonl", "corpus", "python scripts/build_dataset.py"),
-    ("cache/emb_cache.npz", "embedding cache", "python scripts/build_embeddings.py"),
     ("cache/llm_cache.sqlite", "LLM cache", "make full"),
     ("taxonomy/intents.yaml", "intent taxonomy", "python -m groundscore.discover_intents"),
     ("data/golden/golden_v1.jsonl", "golden set", "python tools/label_cli.py"),

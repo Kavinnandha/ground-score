@@ -28,15 +28,31 @@ _WS_RE = re.compile(r"\s+")
 # The dataset ships pre-anonymised @ mentions as tokens like "@115712".
 _ANON_HANDLE_RE = re.compile(r"@\d+")
 
-# Deflection = "we can't help you here, move to DMs". Measured per brand in
-# profile_brands.py because a brand that deflects everything makes the whole
+# Deflection = "we can't help you here, move somewhere private". Measured per
+# brand in profile_brands.py because a brand that deflects everything makes the
 # "draft a grounded reply" task vacuous -- there is nothing to ground in.
-_DEFLECTION_PATTERNS = [
+#
+# There are two distinct forms, and conflating them was a real error in the
+# first version of this file. DM-style deflection is what most brands in this
+# dataset do. AmazonHelp almost never says "DM us" (0.7%) but hands off to a
+# contact page 9.5% of the time -- measuring only the first form undercounted
+# its true handoff rate by 13x. Both are reported separately.
+_DM_PATTERNS = [
     r"\bdm\b", r"\bdms\b", r"direct message", r"send us a (?:message|dm|note)",
     r"(?:shoot|slide|drop) (?:us|me) a", r"follow (?:us|and)", r"private message",
     r"\bpm us\b", r"message us",
 ]
-_DEFLECTION_RE = re.compile("|".join(_DEFLECTION_PATTERNS), re.IGNORECASE)
+_DEFLECTION_RE = re.compile("|".join(_DM_PATTERNS), re.IGNORECASE)
+
+# "Take this elsewhere" via a link or phone number rather than a DM. Requires
+# BOTH a contact verb and a URL: ~46% of AmazonHelp replies contain a URL, and
+# most of those are genuinely helpful (a tracking page, a help article), so a
+# bare URL is not evidence of a handoff.
+_CONTACT_VERB_RE = re.compile(
+    r"(get in touch|reach (?:us|out to us)|contact us|give us a (?:ring|call)|"
+    r"call us|speak (?:to|with) (?:us|our)|use this link)",
+    re.IGNORECASE,
+)
 
 # Cheap script check. Full language ID (fasttext/langdetect) is another
 # dependency for a marginal gain on 100-character strings; the ratio of Latin
@@ -57,8 +73,19 @@ def normalise(text: str) -> str:
 
 
 def is_deflection(reply: str) -> bool:
-    """True if a brand reply just pushes the customer to a private channel."""
+    """True if a brand reply pushes the customer into DMs."""
     return bool(_DEFLECTION_RE.search(reply or ""))
+
+
+def is_link_handoff(reply: str) -> bool:
+    """True if the reply routes the customer to a contact page or phone line."""
+    reply = reply or ""
+    return bool(_CONTACT_VERB_RE.search(reply)) and "<URL>" in reply
+
+
+def is_handoff(reply: str) -> bool:
+    """Either form of 'not resolved here'. This is the metric that matters."""
+    return is_deflection(reply) or is_link_handoff(reply)
 
 
 def latin_ratio(text: str) -> float:
