@@ -34,16 +34,32 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CACHE_PATH = REPO_ROOT / "cache" / "llm_cache.sqlite"
 
-# Model tiers. The judge deliberately runs on a different (stronger) tier than
-# the drafter. That does not eliminate same-family self-preference bias -- it
-# cannot -- but it removes the degenerate "identical model grades its own
-# output" case. The residual bias is measured in eval/judge_agreement.py and
-# reported rather than hidden.
-MODEL_FAST = "gemini-2.5-flash"      # classification, drafting, bulk work
-MODEL_JUDGE = "gemini-2.5-pro"       # LLM-as-judge only
+# Model choice is constrained by what this API key can actually reach. Probed
+# 2026-09: every *-pro model returns 429 RESOURCE_EXHAUSTED (no pro quota on
+# this tier) and gemini-3.8-flash returns 503. So the original plan of "flash
+# drafts, pro judges" is not available and the tiering is done differently:
+#
+#   drafter      gemini-3.5-flash     cheap, fast, adequate for 280-char replies
+#   judge        gemini-3.7-flash     newer generation than the drafter, so not
+#                                     literally the same weights grading itself
+#   cross-judge  gemma-4-31b-it       DIFFERENT MODEL FAMILY (open-weights
+#                                     Gemma, not Gemini). Run on a subset to
+#                                     estimate how much of the judge's approval
+#                                     is same-family self-preference.
+#
+# The cross-family judge is the honest part: a Gemini judge scoring Gemini
+# drafts cannot rule out self-preference on its own, so the bias is measured
+# against an outside model rather than asserted away. See DECISIONS.md.
+MODEL_FAST = "gemini-3.5-flash"
+MODEL_JUDGE = "gemini-3.7-flash"
+MODEL_JUDGE_CROSS = "gemma-4-31b-it"
 MODEL_EMBED = "gemini-embedding-001"
 
 DEFAULT_TEMPERATURE = 0.0
+
+# Free-tier keys are rate limited per minute. Exceeding the limit costs more
+# wall-clock in backoff than throttling does up front, so calls are paced.
+RPM_LIMIT = int(os.environ.get("GROUNDSCORE_RPM", "10"))
 
 
 class OfflineCacheMiss(RuntimeError):
@@ -123,6 +139,26 @@ def _cache_put(key: str, model: str, prompt: str, response: str) -> None:
     conn.commit()
 
 
+def load_dotenv() -> None:
+    """Populate os.environ from .env without overriding real env vars.
+
+    Called at import so every entry point (scripts, tests, the labelling CLI)
+    picks the key up the same way. .env is gitignored; nothing here is logged.
+    """
+    env_path = REPO_ROOT / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+load_dotenv()
+
+
 def api_key() -> str | None:
     key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     return key.strip() if key and key.strip() else None
@@ -144,13 +180,33 @@ def _get_client():
     return _client
 
 
+_rate_lock = threading.Lock()
+_last_call_at = 0.0
+
+
+def _throttle() -> None:
+    """Space out live API calls to stay under the per-minute quota.
+
+    Cache hits never reach here, so a fully-cached replay runs at full speed.
+    """
+    global _last_call_at
+    if RPM_LIMIT <= 0:
+        return
+    min_gap = 60.0 / RPM_LIMIT
+    with _rate_lock:
+        wait = min_gap - (time.monotonic() - _last_call_at)
+        if wait > 0:
+            time.sleep(wait)
+        _last_call_at = time.monotonic()
+
+
 def _call_gemini(
     model: str,
     prompt: str,
     schema: Any,
     temperature: float,
     system: str | None,
-    max_retries: int = 4,
+    max_retries: int = 5,
 ) -> str:
     from google.genai import errors as genai_errors
 
@@ -164,6 +220,7 @@ def _call_gemini(
     last_exc: Exception | None = None
     for attempt in range(max_retries):
         try:
+            _throttle()
             resp = _get_client().models.generate_content(
                 model=model, contents=prompt, config=config
             )
@@ -178,7 +235,11 @@ def _call_gemini(
             last_exc = exc
             if attempt == max_retries - 1:
                 break
-            time.sleep(2.0 * (2 ** attempt))  # 2s, 4s, 8s
+            # 429 (quota) and 503 (model overloaded) both need a long, growing
+            # pause; anything else is likely permanent but cheap to retry once.
+            message = str(exc)
+            slow = "429" in message or "503" in message or "RESOURCE_EXHAUSTED" in message
+            time.sleep((15.0 if slow else 2.0) * (2 ** attempt))
     STATS.errors += 1
     raise RuntimeError(f"Gemini call failed after {max_retries} attempts: {last_exc}") from last_exc
 

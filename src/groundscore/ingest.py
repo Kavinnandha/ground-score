@@ -79,7 +79,13 @@ def list_brands(csv_path: Path = RAW_CSV, top: int = 40) -> pd.DataFrame:
     )
 
 
-def build_threads(brands: list[str], csv_path: Path = RAW_CSV) -> Iterator[dict]:
+def build_threads(
+    brands: list[str],
+    csv_path: Path = RAW_CSV,
+    *,
+    max_threads_per_brand: int | None = None,
+    seed: int = 42,
+) -> Iterator[dict]:
     """Yield one thread dict per (customer opener -> brand reply chain).
 
     Emitted shape:
@@ -125,6 +131,24 @@ def build_threads(brands: list[str], csv_path: Path = RAW_CSV) -> Iterator[dict]
         r = root_of(bt)
         if inbound.get(r, False):  # thread must open with a customer, not the brand
             roots[r] = str(author[bt]).lower()
+
+    # Cap BEFORE the text pass. The text column is what costs memory, so
+    # subsampling here is the difference between ~200MB and several GB when
+    # profiling high-volume brands. Selection is by stable hash rather than
+    # RNG state or file order, so the same threads are chosen on every machine
+    # and adding a brand never changes another brand's sample.
+    if max_threads_per_brand is not None:
+        from .cleaning import stable_bucket
+
+        per_brand: dict[str, list[int]] = defaultdict(list)
+        for root, brand in roots.items():
+            per_brand[brand].append(root)
+        kept: dict[int, str] = {}
+        for brand, root_ids in per_brand.items():
+            ranked = sorted(root_ids, key=lambda r: (stable_bucket(f"{seed}:{brand}:{r}", 10**9), r))
+            for r in ranked[:max_threads_per_brand]:
+                kept[r] = brand
+        roots = kept
 
     needed: set[int] = set()
     thread_members: dict[int, list[int]] = {}
