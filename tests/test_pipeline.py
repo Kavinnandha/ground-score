@@ -121,9 +121,31 @@ def test_offline_miss_raises_rather_than_calling_out(monkeypatch):
     """A reproduce run with no key must fail loudly, never silently diverge."""
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.setenv("GROUNDSCORE_PROVIDER", "gemini")
     monkeypatch.setattr(llm, "_cache_get", lambda key: None)
     with pytest.raises(llm.OfflineCacheMiss):
         llm.complete("a prompt that is definitely not cached", model="test-model")
+
+
+def test_offline_flag_blocks_local_backend_too(monkeypatch):
+    """The local backend needs no key, so stripping keys is not enough.
+
+    Without GROUNDSCORE_OFFLINE a cache miss during `make reproduce` would be
+    served by a live Ollama call and the published numbers would silently stop
+    matching the committed cache.
+    """
+    monkeypatch.setenv("GROUNDSCORE_OFFLINE", "1")
+    monkeypatch.setenv("GROUNDSCORE_PROVIDER", "ollama")
+    monkeypatch.setattr(llm, "_cache_get", lambda key: None)
+    with pytest.raises(llm.OfflineCacheMiss):
+        llm.complete("another definitely-uncached prompt", model="qwen3:4b")
+
+
+def test_cache_key_separates_providers():
+    """A cache built locally must never be replayed as if it were hosted."""
+    local = llm.cache_key("m", "p", None, 0.0, None, prov="ollama")
+    hosted = llm.cache_key("m", "p", None, 0.0, None, prov="gemini")
+    assert local != hosted
 
 
 # ---------------------------------------------------------------------------
