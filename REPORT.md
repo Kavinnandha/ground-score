@@ -72,10 +72,11 @@ So "good" here is:
 | Brand choice | Profiled 7 candidate brands on handoff rate, reply substance, intent diversity, multi-turn rate (`results/brand_profile.md`) |
 | Corpus | 10,026 threads, stable-hash split into 9,427 retrieval history / 599 evaluation pool |
 | Taxonomy | Cluster → LLM names each cluster → human merges into `taxonomy/intents.yaml` |
-| Golden set | 200 adjudicated examples in 3 strata, scored separately |
+| Golden set | 150 adjudicated examples in 3 strata, scored separately |
 | Agent | retrieve(k=5) → classify → draft(≤280 chars, cites precedent) → route |
 | Routing | Deterministic rules first; LLM judges only what survives them |
 | Evaluation | Bootstrap CIs, coverage-vs-harm curve, LLM judge validated against blind human scores |
+| Models | `qwen3:4b` drafts, `gemma3:4b` judges, `nomic-embed-text` embeds — all local via Ollama |
 
 Full rationale for each choice is in [`DECISIONS.md`](DECISIONS.md).
 
@@ -146,9 +147,10 @@ rate is published for exactly this reason — the lower it is, the more the
 golden set measures agreement-with-the-model rather than ground truth. This is
 an anchoring bias that no amount of care fully removes.
 
-**3. n = 120 on the test split. The intervals are wide.**
-Differences under roughly 10 points between systems are not distinguishable
-from noise at this sample size. Any ranking that depends on a small gap should
+**3. n ≈ 90 on the test split. The intervals are wide.**
+The golden set is 150 rather than 250 because the compute budget was a local 4B
+model, not because 150 was enough. Differences under roughly 10 points between
+systems are not distinguishable from noise at this sample size. Any ranking that depends on a small gap should
 be read as "not established", not "smaller".
 
 **4. The headline is one stratum, and the pooled number is not production performance.**
@@ -172,13 +174,12 @@ real support organisation has staffing, SLA and liability constraints that
 would move that line. The routing metrics measure agreement with my policy, not
 correctness against a real one.
 
-**7. The judge and the drafter are the same model family.**
-No pro-tier quota was available on this key, so the judge is a *different
-generation* of Gemini flash rather than a different tier. Self-preference is
-therefore plausible and is measured, not assumed: a cross-family judge
-(`gemma-4-31b-it`) re-scores a subset, and the gap is reported as an upper bound
-on the inflation. The main reply-quality number is still produced by a
-same-family judge.
+**7. The judge is a different family from the drafter — but it is still a small model.**
+Drafter is Qwen, judge is Gemma: different weights, different training data, so
+same-model self-preference is largely removed by construction rather than
+merely measured. What remains is that a 4B judge is a weak judge. Its agreement
+with a human is measured (`results/judge_agreement.json`) and that number, not
+the rubric's apparent rigour, is what licenses any reply-quality claim here.
 
 **8. The hard-case slice was designed by the same person who built the agent.**
 It uses model-independent surface heuristics precisely to limit this, but the
@@ -190,13 +191,30 @@ They will not transfer cleanly to a new period or a new brand, and the
 operating point they define is more fragile than a single reported coverage
 number implies.
 
-**10. The confidence score is not calibrated.**
+**10. The generator is a 4B local model, so absolute quality is not the architecture's ceiling.**
+Reply quality reflects `qwen3:4b` running on a 6GB GPU, not what this pipeline
+would do with a frontier model. Comparisons *between* systems here are fair,
+because every system uses the same generator; the absolute reply scores are not
+a statement about the design.
+
+**10b. The confidence score is not calibrated.**
 Routing partly depends on a self-reported LLM confidence, which is known to
 cluster high and behave more like a fluency signal than a probability. It is
 used because the alternative — no confidence signal — is worse, not because it
 is trustworthy.
 
-**11. One brand, one snapshot.**
+**11. The retrieval backend almost entirely determines what the agent sees.**
+Two embedding backends were run over the same corpus and the same 120 queries.
+They agree on the single most similar precedent **7.5% of the time**, and their
+top-5 sets overlap **11.3%** (`results/retrieval_backend_comparison.json`). So
+"grounded in how the brand historically resolved this" is grounded in whichever
+neighbours the encoder happens to surface, and a different encoder would ground
+the same reply in almost entirely different evidence. Both backends return
+plausible precedent on inspection, which is exactly what makes this easy to
+miss: spot-checking retrieval "looking fine" does not establish that it is
+stable. Every reply-quality number here is conditional on this one choice.
+
+**12. One brand, one snapshot.**
 Everything here is AmazonHelp in late 2017. Nothing establishes that the
 taxonomy, the thresholds, or the judge's behaviour transfers to another brand
 or another year.

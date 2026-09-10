@@ -1,15 +1,16 @@
 {
   "brand": "AmazonHelp",
   "raw_threads": 11000,
-  "kept_threads": 10026,
+  "kept_threads": 8496,
   "dropped": {
     "unusable_customer_message": 957,
+    "not_english": 1530,
     "near_duplicate": 17
   },
   "splits": {
-    "history": 9427,
-    "golden_pool": 599
+    "history": 7998,
+    "golden_pool": 498
   },
   "seed": 42,
-  "file_mb": 10.83
+  "file_mb": 9.19
 }

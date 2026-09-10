@@ -61,16 +61,21 @@ They were grouped by embedding similarity, so the grouping may be wrong.
 
 Messages:
 {messages}
-
+{already_used}
 Produce:
 - name: a short snake_case intent label describing what these customers WANT.
   Name the customer's goal, not the topic. Prefer "delivery_status" over
   "packages". Prefer "refund_request" over "money".
+  The label MUST be distinct from the already-used labels listed above. These
+  clusters were separated by the data, so if this one looks similar to an
+  existing label, find what actually distinguishes it -- is the package late,
+  missing, delivered to the wrong place, or is the customer disputing the
+  service promise? Name that difference.
 - definition: one sentence a human annotator could apply consistently.
 - is_coherent: false if these messages do not actually share a single intent.
   Be strict. A cluster of generic complaints with no common ask is NOT coherent.
-- notes: if incoherent, say what distinct groups you see. If coherent, note any
-  boundary that an annotator might get wrong.
+- notes: if incoherent, say what distinct groups you see. If coherent, note the
+  boundary against the nearest already-used label.
 
 Return JSON only."""
 
@@ -125,12 +130,26 @@ def choose_k(vectors: np.ndarray, k_range=K_RANGE, seed: int = SEED) -> tuple[in
     return best["k"], scores
 
 
-def summarise_cluster(brand: str, messages: list[str]) -> dict:
+def summarise_cluster(brand: str, messages: list[str],
+                      used_names: list[str] | None = None) -> dict:
+    """Name one cluster.
+
+    `used_names` matters more than it looks. Without it the namer collapsed 8
+    of 12 clusters onto the single label "delivery_status" -- the clusters were
+    genuinely distinct (late vs missing vs wrong-address vs Prime-SLA dispute)
+    but the model defaulted to the most obvious topic every time, which would
+    have thrown away most of the structure the clustering actually found.
+    """
     sample = messages[:EXEMPLARS_PER_CLUSTER]
+    already = ""
+    if used_names:
+        already = ("\nLabels already assigned to other clusters (do NOT reuse):\n"
+                   + "\n".join(f"  - {n}" for n in used_names) + "\n")
     prompt = SUMMARISE_PROMPT.format(
         brand=brand,
         n=len(sample),
         messages="\n".join(f"- {m}" for m in sample),
+        already_used=already,
     )
     return llm.complete_json(
         prompt,
@@ -173,7 +192,7 @@ def discover(k: int | None = None, backend: str | None = None) -> dict:
         ordered_messages = [messages[i] for i in order]
 
         print(f"  summarising cluster {cluster_id} (n={counts[cluster_id]})...", flush=True)
-        result = summarise_cluster(brand, ordered_messages)
+        result = summarise_cluster(brand, ordered_messages, [s.name for s in summaries])
         summaries.append(ClusterSummary(
             cluster_id=int(cluster_id),
             size=int(counts[cluster_id]),

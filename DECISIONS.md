@@ -223,6 +223,38 @@ rises monotonically with k in this range anyway, so the sweep is a starting
 point for the human merge, not a precise model-selection result — treating it as
 the latter would be over-reading a weak signal.
 
+**26. Clustering caught that a sixth of the corpus was not English, and the script filter had missed it.**
+The first clustering run produced twelve clusters, of which four were
+*languages* rather than intents: French, Spanish, German and Portuguese, about
+16% of the corpus. The existing filter checked Latin **script**, which all four
+pass trivially. So the taxonomy was partly a language taxonomy, and any intent
+class would have been diluted by non-English traffic that the agent has no way
+to serve.
+
+The fix is a dependency-free English check, and its first version was wrong in
+an instructive way: testing only for *absence of English function words*
+rejected 20.7% of the corpus against a true non-English share near 16%, because
+terse but genuinely English tweets ("ur app shows expected delivery on 25th")
+contain almost no function words. Requiring **positive evidence of another
+language** — function words from the four languages actually present — brought
+it to 15.3%, catching 30 of 32 known non-English exemplars while keeping 64 of
+64 English ones. It errs toward keeping, which is the right direction: a stray
+foreign message in the corpus is a much smaller problem than silently
+discarding English traffic.
+
+Multilingual support was already declared out of scope, so this traffic is
+removed rather than served badly. Corpus: 10,026 -> 8,496 threads.
+
+**27. The cluster namer had to be shown the labels it had already used.**
+Left alone, it named 8 of 12 clusters `delivery_status`. The clusters were
+genuinely different — late delivery, missing package, delivered-to-wrong-address,
+and disputes about the Prime next-day promise are distinct problems with
+distinct resolutions — but the model defaulted to the most obvious topic every
+time. Passing the already-assigned labels and requiring a distinct one forces
+it to articulate what separates each cluster. Without this the taxonomy would
+have discarded most of the structure the clustering actually found, and the
+classification task would have looked far easier than it is.
+
 ---
 
 ## Borrowed / cited

@@ -1,0 +1,7 @@
+{
+  "n": 120,
+  "top1_identical": 0.075,
+  "mean_top5_overlap": 0.11333333333333334,
+  "mean_top1_sim_embed": 0.7685145204265912,
+  "mean_top1_sim_tfidf": 0.6194422570367654
+}
