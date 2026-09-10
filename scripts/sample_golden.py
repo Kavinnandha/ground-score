@@ -42,7 +42,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from groundscore import config, embed, retrieve, taxonomy  # noqa: E402
-from groundscore.classify import classify  # noqa: E402
+from groundscore.respond import respond  # noqa: E402
 from groundscore.cleaning import stable_bucket  # noqa: E402
 
 SEED = 42
@@ -162,6 +162,21 @@ def stratified_sample(pool: list[dict], clusters: np.ndarray, cfg: dict) -> list
             chosen[item["thread_id"]] = {**item, "stratum": "proportional"}
             taken += 1
 
+    # Per-cluster quotas round down, so the strata can finish a few short of the
+    # target. Top up from the largest clusters, which is where proportional
+    # sampling would have drawn them anyway. Without this the set came out at
+    # 146 -- under the brief's 150 minimum.
+    if len(chosen) < target:
+        for cluster, _ in sorted(sizes.items(), key=lambda kv: -kv[1]):
+            for item in by_cluster[cluster]:
+                if len(chosen) >= target:
+                    break
+                if item["thread_id"] in chosen:
+                    continue
+                chosen[item["thread_id"]] = {**item, "stratum": "proportional"}
+            if len(chosen) >= target:
+                break
+
     return sorted(chosen.values(), key=lambda i: (i["stratum"], rank(i)))
 
 
@@ -184,7 +199,12 @@ def main() -> int:
     candidates = []
     for i, item in enumerate(sample, start=1):
         neighbours = retriever.search(item["customer_msg"], k=5)
-        weak = classify(item["customer_msg"], neighbours, brand)
+        # Deliberately the SAME call the agent makes, not a separate classifier.
+        # Two reasons: the override rate then means "how often the annotator
+        # disagreed with the system under evaluation", which is the number worth
+        # reporting; and these responses land in the same cache the evaluation
+        # reads, so labelling does not cost a second pass over the same inputs.
+        weak, _ = respond(item["customer_msg"], neighbours, brand)
         candidates.append({
             "thread_id": item["thread_id"],
             "customer_msg": item["customer_msg"],
