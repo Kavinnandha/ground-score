@@ -1,22 +1,26 @@
-"""Gemini adapter with an on-disk, content-addressed response cache.
+"""Model access with an on-disk, content-addressed response cache.
 
 Why this file exists in this shape
 ----------------------------------
 The brief requires a reviewer to reproduce the headline results in under 15
-minutes. Live LLM calls make that impossible: they are slow, they cost money,
-they need a key, and they are not deterministic across runs.
+minutes. Live model calls make that impossible: they are slow, they may need a
+key, and they are not deterministic across runs.
 
-So every model call is content-addressed by SHA256(provider, model, prompt,
-schema, temperature) and stored in a SQLite file that is COMMITTED to the repo.
-A reviewer with no GEMINI_API_KEY set replays the exact responses that produced
-the numbers in results/. A cache miss without a key is a hard error rather than
-a silent fallback -- a silent fallback would let the pipeline quietly diverge
-from the published numbers, which is the failure mode this design exists to
-prevent.
+So every call is content-addressed by SHA256(provider, model, prompt, schema,
+temperature, system) and stored in a SQLite file that is COMMITTED to the repo.
+A reviewer replays the exact responses that produced the numbers in results/.
+The provider is part of the key, so a cache built locally is never confused
+with one built against a hosted API.
 
-Temperature is pinned to 0.0 everywhere. That does not make Gemini strictly
-deterministic (it is not), which is precisely why the cache, not the
-temperature, is what carries reproducibility.
+A cache miss during a reproduction run is a hard error, never a silent
+fallback. That distinction carries the whole reproducibility claim, and it
+needs `offline()` rather than just an unset API key: the default backend is
+local Ollama, which needs no credentials, so removing keys alone would let a
+miss be served by a live local call while still looking like a clean replay.
+
+Temperature is pinned to 0.0 everywhere. That does not make any of these models
+strictly deterministic, which is precisely why the cache, not the temperature,
+is what carries reproducibility.
 """
 
 from __future__ import annotations
@@ -36,22 +40,11 @@ from . import providers
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CACHE_PATH = REPO_ROOT / "cache" / "llm_cache.sqlite"
 
-# Model choice is constrained by what this API key can actually reach. Probed
-# 2026-09: every *-pro model returns 429 RESOURCE_EXHAUSTED (no pro quota on
-# this tier) and gemini-3.8-flash returns 503. So the original plan of "flash
-# drafts, pro judges" is not available and the tiering is done differently:
-#
-#   drafter      gemini-3.5-flash     cheap, fast, adequate for 280-char replies
-#   judge        gemini-3.7-flash     newer generation than the drafter, so not
-#                                     literally the same weights grading itself
-#   cross-judge  gemma-4-31b-it       DIFFERENT MODEL FAMILY (open-weights
-#                                     Gemma, not Gemini). Run on a subset to
-#                                     estimate how much of the judge's approval
-#                                     is same-family self-preference.
-#
-# The cross-family judge is the honest part: a Gemini judge scoring Gemini
-# drafts cannot rule out self-preference on its own, so the bias is measured
-# against an outside model rather than asserted away. See DECISIONS.md.
+# Gemini ids, used only when GROUNDSCORE_PROVIDER=gemini. Probed 2026-09 on the
+# free tier: every *-pro model returns 429 (no pro quota), gemini-3.8-flash
+# returns 503, and generate_content is capped at 20 requests PER DAY PER MODEL
+# -- which is why the default backend is local. See providers.py and
+# DECISIONS.md #22.
 GEMINI_FAST = "gemini-3.5-flash"
 GEMINI_JUDGE = "gemini-3.7-flash"
 GEMINI_JUDGE_CROSS = "gemma-4-31b-it"
@@ -198,6 +191,18 @@ def have_key() -> bool:
     return api_key() is not None
 
 
+def offline() -> bool:
+    """True during a reproduction run.
+
+    Stripping API keys is enough to force a hard failure on a cache miss when
+    the backend is a hosted API. It is NOT enough for a local backend: Ollama
+    needs no credentials, so a miss would quietly be served by a live local
+    call and the "these numbers came from the committed cache" claim would be
+    false without anything appearing to go wrong. This flag closes that hole.
+    """
+    return os.environ.get("GROUNDSCORE_OFFLINE", "").strip() == "1"
+
+
 _client = None
 
 
@@ -291,6 +296,15 @@ def complete(
     if cached is not None:
         STATS.hits += 1
         return cached
+
+    if offline():
+        raise OfflineCacheMiss(
+            "Call not in cache and GROUNDSCORE_OFFLINE=1.\n"
+            f"  model={model} key={key[:12]}...\n"
+            "  This is a reproduction run: it must replay the committed cache exactly.\n"
+            "  A miss means the committed cache does not cover this code path -- the\n"
+            "  prompt, config or inputs changed. Regenerate with 'make full', or revert."
+        )
 
     if provider() == "ollama":
         if not providers.available():
