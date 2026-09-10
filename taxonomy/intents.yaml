@@ -1,0 +1,254 @@
+# Intent taxonomy for @AmazonHelp.
+#
+# THIS FILE IS BOTH the classifier prompt and the human labelling guideline.
+# One definition, two consumers — see src/groundscore/taxonomy.py. Keeping them
+# in separate files guarantees drift, and the resulting human/model
+# disagreement gets misread as model error when it is really a spec mismatch.
+#
+# How it was built (results/intent_clusters.json):
+#   1. KMeans over 7,998 embedded inbound messages; k=10 chosen by silhouette.
+#   2. An LLM named each cluster from its 25 most central messages, and was
+#      shown the labels already used so it could not collapse everything onto
+#      one topic (it did exactly that on the first run: 8 of 12 clusters came
+#      back as "delivery_status").
+#   3. THIS STEP IS HUMAN. Clusters were merged, split and renamed by hand.
+#
+# Where the merge departed from the clusters, and why:
+#
+#   * The clustering split "delivery" four ways, and three of those splits are
+#     real and worth keeping because they have DIFFERENT RESOLUTIONS:
+#     not-arrived (wait/claim), late (track/wait), wrong-location (recover the
+#     parcel). They are not one intent.
+#   * Cluster 3 (Prime SLA disputes, n=751) is topically "late delivery" but
+#     the customer is disputing a paid guarantee, not asking where a parcel is.
+#     It usually wants money, so it is its own class and is never auto-handled.
+#   * Cluster 6 was incoherent: marketing hashtags and non-support chatter.
+#     That is real inbound volume, so it became `promotional_or_off_topic`
+#     rather than being buried in `other`.
+#   * `account_access` is only ~1% of traffic and did not earn a cluster, but
+#     it is added deliberately: it is low-volume and high-consequence, and a
+#     taxonomy with no class for it would force those messages into a
+#     neighbouring class and auto-answer them.
+#
+# `never_auto: true` marks classes where a public automated reply is
+# unacceptable regardless of model confidence. These are enforced in
+# src/groundscore/route.py ahead of every threshold.
+
+brand: AmazonHelp
+
+intents:
+  - name: delivery_not_received
+    definition: >-
+      The order is marked delivered, or the delivery window has passed, and the
+      customer does not have the package. The parcel is effectively missing.
+    boundary_rule: >-
+      vs delivery_late: here the tracking says it is DONE (or the customer has
+      given up on it); delivery_late is still in transit and merely overdue.
+      vs delivery_wrong_location: only use that when the customer says where it
+      actually went.
+    never_auto: false
+    positive_examples:
+      - "order marked as delivered on 16-08-17 not yet received. Help and please do work on customer support service"
+      - "My order id-403-9709406-6345932 Product showing delivered but not delivered yet. Very bad customer service"
+      - "Its says my package was delivered but it hasnt been"
+    negative_examples:
+      - "should have received my delivery Tuesday, nothing. Supposed to arrive today, nothing."
+      - "For the fourth time in 2 months has \"delivered\" a package, but it wasn't delivered to my building."
+
+  - name: delivery_late
+    definition: >-
+      The package has not arrived by the promised date but is still expected.
+      The customer wants to know where it is or when it will come.
+    boundary_rule: >-
+      vs prime_guarantee_dispute: if the customer frames it as "I paid for
+      Prime and you broke the promise", that is the dispute class. Simple
+      lateness with no reference to a paid guarantee belongs here.
+    never_auto: false
+    positive_examples:
+      - "my order was supposed to be delivered yesterday as it was supposed to be same day delivery but it's still not here"
+      - "what happens when next day delivery never comes and my expected delivery is now 3-4 days out??"
+      - "Amazon's new delivery service in action. Out for delivery 3 days, still don't have it."
+    negative_examples:
+      - "I don't know why I pay for Prime anymore. Out of the last 6 packages with One Day Delivery, 4 have been late"
+      - "Product showing delivered but not delivered yet"
+
+  - name: delivery_wrong_location
+    definition: >-
+      The parcel went somewhere other than where it should have: a neighbour,
+      the wrong building, or left unsecured in a public place.
+    boundary_rule: >-
+      Requires the customer to indicate the parcel's actual or attempted
+      location. "It never arrived" with no location detail is
+      delivery_not_received.
+    never_auto: false
+    positive_examples:
+      - "part of re-order was just left on doorstep, on main road. No knock, nothing"
+      - "For the fourth time in 2 months has \"delivered\" a package, but it wasn't delivered to my building."
+      - "just had an email to say my parcel couldn't be delivered as couldn't be left unattended- delivery address is a business"
+    negative_examples:
+      - "my order is 3 days late and still says out for delivery"
+      - "Product showing delivered but not delivered yet"
+
+  - name: prime_guarantee_dispute
+    definition: >-
+      The customer is disputing the value or fulfilment of a paid Prime
+      commitment — repeated missed next-day deliveries, or questioning why they
+      pay for the service at all.
+    boundary_rule: >-
+      The distinguishing feature is the PAID PROMISE, not the lateness. These
+      customers usually want compensation or to cancel, which is why this is
+      never auto-handled even though it looks like a delivery question.
+    never_auto: true
+    escalation_note: >-
+      involves a paid service guarantee and usually an implicit refund or
+      cancellation request
+    positive_examples:
+      - "I don't know why I pay for Prime anymore. Out of the last 6 packages with One Day Delivery, 4 have been late"
+      - "Dear , why am I paying for Prime when not one of my \"next day delivery\" Prime orders has arrived the next day"
+      - "Of course my recent prime order wasn't delivered within their guaranteed 2 day window."
+    negative_examples:
+      - "my parcel is a day late, any idea where it is?"
+      - "not a happy customer, been charged £80 for amazon prime!!! which I haven't signed up for?"
+
+  - name: refund_or_return
+    definition: >-
+      The customer wants to send an item back, or is chasing a refund that has
+      been agreed but not received.
+    boundary_rule: >-
+      vs billing_charge_dispute: a refund is money owed back for a known
+      order; a billing dispute is a charge the customer says should never have
+      happened.
+    never_auto: false
+    positive_examples:
+      - "faulty pc. the pc. returned but no refund recd. till now, got mail refund will be made in 5 days"
+      - "Please refer my previous tweets and I request to you to please look into the matter and refund my money"
+      - "All of the sudden it wants to charge me money to return shit. No thank you."
+    negative_examples:
+      - "not a happy customer, been charged £80 for amazon prime!!! which I haven't signed up for?"
+      - "my package arrived smashed"
+
+  - name: billing_charge_dispute
+    definition: >-
+      A charge the customer says is wrong, unexpected, duplicated, or for
+      something they never signed up for.
+    boundary_rule: >-
+      vs refund_or_return: the customer is contesting that the charge should
+      exist at all, rather than asking for an agreed refund to be processed.
+    never_auto: true
+    escalation_note: >-
+      involves money leaving the customer's account and needs account access to
+      verify
+    positive_examples:
+      - "not a happy customer, been charged £80 for amazon prime!!! which I haven't signed up for?"
+      - "so! You took money from account for no reason! Your customer service can't help and now I'm on hold!"
+      - "I called customer service and was told my membership wouldn't be renewed. I was just charged today."
+    negative_examples:
+      - "the pc was returned but no refund received till now"
+      - "why am I paying for Prime when nothing arrives on time"
+
+  - name: item_damaged_or_packaging
+    definition: >-
+      The item arrived damaged, faulty, or in packaging inadequate to protect
+      it. Includes complaints about packaging quality with no explicit ask.
+    never_auto: false
+    boundary_rule: >-
+      If the customer's main ask is money back rather than reporting the
+      damage, label refund_or_return.
+    positive_examples:
+      - "you really need to rethink your packaging. Every time the boxes are damaged."
+      - "my purchased product was sent in flimsy packaging and arrived damaged"
+      - "This is not acceptable. This was delivered today. No packaging. Just a label on the box."
+    negative_examples:
+      - "faulty pc returned but no refund received till now"
+      - "my parcel was left on the doorstep in the rain"
+
+  - name: service_complaint
+    definition: >-
+      A complaint about the support experience itself: hold times, broken
+      promises from agents, repeated unresolved contacts, or a general
+      statement that the service is unacceptable.
+    boundary_rule: >-
+      Use only when the SUPPORT EXPERIENCE is the subject. A furious message
+      that still has a specific underlying ask should be labelled by that ask.
+    never_auto: true
+    escalation_note: >-
+      the customer has already been failed at least once; an automated reply is
+      likely to make it worse
+    positive_examples:
+      - "I have just been on the phone for 40 minutes to your Customer Service. Most of the time on hold"
+      - "when I tried contacting your customer care, my both attempts resulted in 2 different and false promises."
+      - "You quite literally have the worst customer service I have ever experienced."
+    negative_examples:
+      - "where is my parcel, it's three days late"
+      - "I was charged twice for one order"
+
+  - name: device_or_digital_service
+    definition: >-
+      Questions about Amazon devices and digital services — Echo/Alexa, Fire
+      TV, Kindle, Prime Music or Video — including availability and setup.
+    never_auto: false
+    boundary_rule: >-
+      A device that arrived broken is item_damaged_or_packaging; this class is
+      about the device or service not working, or not being available.
+    positive_examples:
+      - "The channel app on my Amazon fire stick isn't working and it's pissing me off."
+      - "I bought the Amazon Dot Echo but you haven't yet activated my Amazon Prime for a year."
+      - "Can we play music through a phone? - \"Amazon Echo\""
+    negative_examples:
+      - "my kindle arrived with a cracked screen"
+      - "when will my echo be delivered"
+
+  - name: account_access
+    definition: >-
+      The customer cannot get into their account, or believes it has been
+      compromised or wrongly closed.
+    never_auto: true
+    escalation_note: >-
+      account security and identity; must never be handled by an automated
+      public reply
+    boundary_rule: >-
+      Any suggestion of unauthorised access, fraud or a hacked account belongs
+      here regardless of what else the message asks for.
+    positive_examples:
+      - "Hi Amazon, I signed up this week and placed an order. Now when I try sign in, it says my email isn't registered?"
+      - "how can I update my email address? I've gone through it a dozen times with a dozen passwords"
+      - "my amazon account got hacked wtf"
+    negative_examples:
+      - "I was charged for prime and want it cancelled"
+      - "the app keeps crashing when I open it"
+
+  - name: promotional_or_off_topic
+    definition: >-
+      Not a support request: marketing hashtags, contest entries, praise,
+      jokes, or messages that merely mention the brand.
+    never_auto: false
+    boundary_rule: >-
+      Praise with no ask belongs here. A complaint with no ask does not — that
+      is service_complaint.
+    positive_examples:
+      - "#KaroMilkeTayyari offers ko unlock karne ki. Send us a screenshot of the deal that brightens your day."
+      - "#PehleKaroPuriTayyari #FakeListings available at 699 without any deal, Lightning deal at 799."
+      - "Amazon Prime Music Incoming? Echo description shows on Amazon India."
+    negative_examples:
+      - "You quite literally have the worst customer service I have ever experienced."
+      - "when will it be available in india?"
+
+  - name: other
+    definition: >-
+      A genuine support request that none of the classes above fits.
+    never_auto: true
+    escalation_note: >-
+      by definition there is no matching precedent pattern, so there is nothing
+      to ground a reply in
+    boundary_rule: >-
+      Do NOT use this as a low-confidence bucket for messages that do fit a
+      class. Use it when the message is a real request the taxonomy does not
+      cover — that signal is how distribution shift becomes visible instead of
+      being silently absorbed.
+    positive_examples:
+      - "can I add another adult to my Amazon household and will they see my watch history?"
+      - "do you deliver to BFPO addresses?"
+      - "is there a way to change the language of the app interface?"
+    negative_examples:
+      - "where is my parcel"
+      - "I want a refund"

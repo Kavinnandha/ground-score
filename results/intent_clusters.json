@@ -1,58 +1,58 @@
 {
   "brand": "AmazonHelp",
-  "k": 12,
-  "n_messages": 9427,
+  "k": 10,
+  "n_messages": 7998,
   "silhouette_sweep": [
     {
       "k": 8,
-      "silhouette": 0.0696,
-      "inertia": 4353.23
+      "silhouette": 0.0543,
+      "inertia": 3654.32
     },
     {
       "k": 10,
-      "silhouette": 0.0775,
-      "inertia": 4245.44
+      "silhouette": 0.0561,
+      "inertia": 3599.96
     },
     {
       "k": 12,
-      "silhouette": 0.078,
-      "inertia": 4180.59
+      "silhouette": 0.0435,
+      "inertia": 3559.72
     },
     {
       "k": 14,
-      "silhouette": 0.0708,
-      "inertia": 4131.84
+      "silhouette": 0.0474,
+      "inertia": 3515.71
     },
     {
       "k": 16,
-      "silhouette": 0.0657,
-      "inertia": 4086.91
+      "silhouette": 0.0515,
+      "inertia": 3481.6
     },
     {
       "k": 18,
-      "silhouette": 0.0753,
-      "inertia": 4042.35
+      "silhouette": 0.0458,
+      "inertia": 3455.34
     },
     {
       "k": 20,
-      "silhouette": 0.0738,
-      "inertia": 4011.82
+      "silhouette": 0.052,
+      "inertia": 3424.78
     },
     {
       "k": 22,
-      "silhouette": 0.0626,
-      "inertia": 3991.31
+      "silhouette": 0.0509,
+      "inertia": 3399.23
     }
   ],
   "clusters": [
     {
-      "cluster_id": 11,
-      "size": 1186,
-      "share": 0.1258,
-      "name": "delivery_status",
-      "definition": "Customers are asking about the status of their orders and whether their products have been delivered.",
+      "cluster_id": 4,
+      "size": 1159,
+      "share": 0.1449,
+      "name": "delivery_status_confusion",
+      "definition": "Customers report discrepancies between order status updates and actual delivery, such as receiving 'delivered' notifications but not receiving packages, or orders being marked as delivered when they are not.",
       "is_coherent": true,
-      "notes": "The cluster is coherent as all messages express frustration over delayed or missing deliveries. Annotators might misclassify messages that explicitly request refunds or cancellations as separate intents, but the primary focus here is on delivery status.",
+      "notes": "This cluster focuses on confusion about delivery status (e.g., 'delivered' notifications without actual delivery) rather than late delivery or missing packages. Distinguishes from 'delivery_late' by emphasizing status confusion over time delays.",
       "exemplars": [
         "Amazon’s new delivery service in action. Out for delivery 3 days, still don’t have it. Don’t think I will be renewing #AmazonPrime #Amazon <URL>",
         "I have order an item with you and after many attempts to to resolve Amazon have let me down the worst customer care ever",
@@ -60,217 +60,179 @@
         "#AmazonIN #Amazon will you please refund my money as you r not going to deliver my order even after 20 days, despite being a prime customer <URL>",
         "- Bad service, Amazon. <URL>",
         ": I am a frustrated customer from India. Your Amazon india products are FAKE , Cheating customer by selling Defective products..",
-        "#Amazon is so disappointing. Made 8 callsto the customer care and still product is not delivered. #amazondisappointed",
-        "Bad service & no reply! Why do Amazon make it so hard to get in touch! Delivery due yesterday as paid for, not in 2 more days! <URL>"
-      ]
-    },
-    {
-      "cluster_id": 10,
-      "size": 1125,
-      "share": 0.1193,
-      "name": "delivery_status",
-      "definition": "Customers are asking for confirmation that their order will be delivered today or by a specific date, expressing frustration over delayed deliveries.",
-      "is_coherent": true,
-      "notes": "Annotator might misclassify messages where customers explicitly request refunds or cancellations as 'delivery_status' instead of 'refund_request'.",
-      "exemplars": [
-        "my order was supposed to be delivered yesterday as it was supposed to be same day delivery but it's still not arrived a day later.",
-        "what happens when next day delivery never comes and my expected delivery is now 3-4 days out?? Since when?? 😡 #NOThappy",
-        "should have received my delivery Tuesday, nothing. Supposed to arrive today, nothing. I need it for Saturday. What's happening?",
-        "my order delivery date is today but my order is not delivered...",
-        "Thanks for guaranteeing delivery today, and the package hasn’t arrived. Now you’re telling me to wait til Wednesday?",
-        "when i select for my delivery to arrive today and it still isn’t out for delivery apparently, yet says it’ll arrive today between 7am and 10pm.. running out of time then🙄😩🤔",
-        "Dear waiting on delivery since 23rd told by CS would be delivered between 6:30pm-9 on 24th I waited. Today? #stillnothing",
-        "it was supposed to come today at around 1PM. Saw that my delivery was next and now delayed??? <URL>"
-      ]
-    },
-    {
-      "cluster_id": 1,
-      "size": 1123,
-      "share": 0.1191,
-      "name": "refund_request",
-      "definition": "Customers seeking resolution for a refund or financial compensation due to service issues or product defects.",
-      "is_coherent": true,
-      "notes": "Most messages explicitly mention refund requests, financial issues, or compensation. One message (#19) mentions a refund but is slightly ambiguous about the context. Annotator might misclassify if they focus on delivery issues instead of financial resolution.",
-      "exemplars": [
-        "when I tried contacting your customer care, my both attempts resulted in 2 different and false promises. Let me tell you, your customer care is a pain. All contacts is past also had been a pain. #nothingprimeinamazonprime",
-        ": poor customer service. Reported an issue on 17 Oct. ETA offered was 2 days. Issue isn’t still resolved.",
-        "You quite literally have the worst customer service I have ever experienced. Purchased faulty product, would like postage it cost me to send the product back included with refund, 3rd attempt at explaining 20mins on hold now. Ridiculous.",
-        "your customer support not responding. Made 6 calls for return pickup but no one came in 15 days. Cut down call arrogantly! Fishy",
-        "the worst possible customer service. Quite happy to take your money but once you have a service issue. FU",
-        "thank you for having the worst customer service. I have been waiting for my money since Sept 19th.",
-        "The worst service ever experienced. 21 days of order but not yet delivered. Tried getting refund but no confirmation of that too. Tired of calling and chatting. #foolingCustomers.",
-        "Absolutely Shockingly bad customer service from I have been a prime customer for several years ans I expect what I pay for. Do not advertise next day delivery when you can’t honour it. I should be a priority and I’m not!! #crapservice"
-      ]
-    },
-    {
-      "cluster_id": 4,
-      "size": 1059,
-      "share": 0.1123,
-      "name": "delivery_status",
-      "definition": "Customers are asking about the status of their package delivery, specifically whether it was successfully delivered to the correct address or if there are issues with delivery attempts.",
-      "is_coherent": true,
-      "notes": "Annotator might misclassify messages where customers are explicitly requesting refunds or compensation for failed deliveries as 'delivery_status' instead of 'refund_request'.",
-      "exemplars": [
-        "is on my bad list today. Their new delivery system not only failed to get my stuff to me, it sounds like their driver just handed my package to any passersby who was willing to forge my signature! I was 3 states away when this happened!!",
-        "Not only has my delivery gone missing, part of re-order was just left on doorstep, on main road. No knock at door, card or anything! #Angry at delivery driver doesn't quite cover it! Plus told to leave with neighbour. #Amazon #PoorService",
-        "For the fourth time in 2 months has “delivered” a package, but it wasn’t delivered to my building. I realize numbers are hard, but THEY ARE ON THE FRONT OF THE BUILDING. This time I have no idea where it is. #AmazonFixThis #IWantMySlippers",
-        "just had an email to say my parcel couldn’t be delivered as couldn’t be left unattended- delivery address is a doctor’s surgery. Always someone on reception to receive and open until 18.30 🤔",
-        "this was put through my letter box. Not mine and I don’t live near a no.3. Someone is missing their parcel. Awful delivery 😡 <URL>",
-        ". is claiming they can't mail me the missing ITEM from my delivery. Um. I ordered a two pack of something and you only sent one of them...how come you can't send me the missing one?",
-        "Unacceptable delivery “Packages were not left in a safe area!” <URL>",
-        "my package was ‘accidentally’ opened.. 4 items missing worth £97. You need better delivery drivers!! <URL>"
-      ]
-    },
-    {
-      "cluster_id": 3,
-      "size": 1010,
-      "share": 0.1071,
-      "name": "delivery_status",
-      "definition": "Customers asking about the status of their package delivery or when they will receive their order.",
-      "is_coherent": false,
-      "notes": "The cluster contains multiple distinct intents: 1) Delivery status inquiries (e.g., 'when will be pickup', 'WTF is going on I seems like you have started delivering the products at night'), 2) Product availability issues (e: 'seems to be falsely representing availability of products'), 3) Complaints about scam listings (e.g., '#PehleKaroPuriTayyari #FakeListings'), 4) Requests for fixes (e.g., 'fix this', 'can we please fix this'), 5) Confusion about package delivery (e.g., 'OMG, I see my package there!! HAHA'). Annotators might misclassify the product availability and scam listing complaints as delivery status.",
-      "exemplars": [
-        "Fking I specifically said one of each version when I contacted them but I get this <URL>",
-        "#PehleKaroPuriTayyari #FakeListings available at 699 without any deal, Lightning deal at 799. Same product with different MRP. <URL>",
-        "I think has a glitch: <URL>",
-        "WTF is going on I seems like you have started delivering the products at night😡😡 <URL>",
-        ". fix this <URL>",
-        "can we please fix this! <URL>",
-        "loading...... 👎👎👎👎👎👎👎👎 <URL>",
-        "Hey Amazon, unless I'm missing something, can you guys add? 😂 <URL>"
+        "Bad service & no reply! Why do Amazon make it so hard to get in touch! Delivery due yesterday as paid for, not in 2 more days! <URL>",
+        "#Amazon is so disappointing. Made 8 callsto the customer care and still product is not delivered. #amazondisappointed"
       ]
     },
     {
       "cluster_id": 9,
-      "size": 837,
-      "share": 0.0888,
-      "name": "prime_music_access",
-      "definition": "Customers want to access Amazon Prime Music on their Amazon devices, such as Echo devices or Fire sticks, in India.",
+      "size": 1039,
+      "share": 0.1299,
+      "name": "delivery_late",
+      "definition": "Customers expressing frustration that their package has not arrived by the expected delivery date, with specific emphasis on the delay beyond the promised timeframe.",
       "is_coherent": true,
-      "notes": "Most messages relate to Prime Music availability on Echo devices or Fire sticks in India. The message about the Sony Liv app issue is slightly out of scope but still related to app functionality on Fire TV sticks.",
+      "notes": "This cluster focuses on the specific issue of packages arriving late beyond the promised delivery date, distinguishing from 'delivery_status_confusion' which involves confusion about delivery status updates rather than the actual delay.",
       "exemplars": [
-        "#amazonecho \"Alexa, please come to my home\" I requested on Oct 4 and I'm big fan of Alexa Give me invitation",
-        "Amazon Prime Music Incoming? Echo description shows on Amazon India.",
-        "I bought the Amazon Dot Echo but you haven't yet activated my Amazon Prime for a year.",
-        "The channel app on my Amazon fire stick isn't working and it's pissing me off. For some reason #PlayStationVue isn't listed as a cable provider.",
-        "your description of echo dot includes \"play music on amazon prime music\". Is that available now in India or coming up?! yay!!",
-        "Twitter what should I do with my I can’t get it on and there’s too many help topics on Amazon to help me... 😩 #kindle #broken <URL>",
-        "Hey release the Apple TV app already. I will cancel my Prime membership soon if it isn’t",
-        "Can we play music through a phone? - \"Amazon Echo\""
+        "my order was supposed to be delivered yesterday as it was supposed to be same day delivery but it's still not arrived a day later.",
+        "what happens when next day delivery never comes and my expected delivery is now 3-4 days out?? Since when?? 😡 #NOThappy",
+        "should have received my delivery Tuesday, nothing. Supposed to arrive today, nothing. I need it for Saturday. What's happening?",
+        "Thanks for guaranteeing delivery today, and the package hasn’t arrived. Now you’re telling me to wait til Wednesday?",
+        "my order delivery date is today but my order is not delivered...",
+        "Dear waiting on delivery since 23rd told by CS would be delivered between 6:30pm-9 on 24th I waited. Today? #stillnothing",
+        "it was supposed to come today at around 1PM. Saw that my delivery was next and now delayed??? <URL>",
+        "when i select for my delivery to arrive today and it still isn’t out for delivery apparently, yet says it’ll arrive today between 7am and 10pm.. running out of time then🙄😩🤔"
       ]
     },
     {
-      "cluster_id": 0,
-      "size": 778,
-      "share": 0.0825,
-      "name": "delivery_status",
-      "definition": "Customers are asking for confirmation that their order has been delivered or the status of their order's delivery.",
-      "is_coherent": true,
-      "notes": "Annotator might misclassify messages that mention refunds or returns as part of the delivery status issue, but all messages here focus on the delivery status of orders.",
+      "cluster_id": 6,
+      "size": 992,
+      "share": 0.124,
+      "name": "delivery_status_confusion",
+      "definition": "Customers expressing confusion about the delivery status of their orders, including discrepancies in delivery timelines, product availability, and communication with Amazon regarding order status.",
+      "is_coherent": false,
+      "notes": "The cluster contains messages about delivery status confusion, product availability, and communication issues. However, some messages are about product availability in India, delivery delays, and other issues that may not share a single intent. The distinct groups are: 1) Delivery status confusion (e.g., 'when will it be available in india?', 'loading...... 👎👎👎👎👎👎👎👎', 'I think has a glitch'), 2) Product availability in India (e.g., 'when will this product be available in India ?', 'when will it be available in india?'), 3) Delivery delays (e.g., 'WTF is going on I seems like you have started delivering the products at night', 'che gou hoje ! amei ❤❤ obrigada :)', 'it's happening').",
       "exemplars": [
-        ", Order# 404-3608255-3278719, ordered but not received, getting no help from your side except to wait as told. <URL>",
-        ":seriously m dissatisfied with ur service.Fedup regarding return and refund of product. Order # 405-4729765-7965919",
-        ": order marked as delivered on 16-08-17 not yet received. Help and please do work on customer support services.",
-        "My order id-403-9709406-6345932 Product showing delivered but not delivered yet. Very bad customer service support. <URL>",
-        "I have received the ORDER # 402-9389284-8265946 but it shows undelivered. Spare the refund as I have already received it. <URL>",
-        "Why have not you picked up my ORDER # 404-8970009-0733166 and what about refund? Why are you delaying this? I want to place",
-        "My Order# 404-4244805-4392323 shows as Delivered on 03 Nov 2017, but I have still not received it!! Kindly revert urgently.",
-        "Will you reply my query on order no 407-3578652-0423541 ? Lately I am experiencing issues with your service."
+        "届いた!! もう神!! Amazonありがと!! #Amazon <URL>",
+        "#KaroMilkeTayyari offers ko unlock karne ki. Send us a screenshot of the deal that brightens your day. #AmazonGreatIndianFestival <URL>",
+        "Karo #DiwaliKiTayyari Amazon deals ke saath. Send us a screenshot of the deal that lights up your day. #AmazonGreatIndianFestival <URL>",
+        "when will it be available in india? <URL>",
+        "loading...... 👎👎👎👎👎👎👎👎 <URL>",
+        "#PehleKaroPuriTayyari #FakeListings available at 699 without any deal, Lightning deal at 799. Same product with different MRP. <URL>",
+        "Hey Amazon, unless I'm missing something, can you guys add? 😂 <URL>",
+        "I think has a glitch: <URL>"
       ]
     },
     {
-      "cluster_id": 5,
-      "size": 747,
-      "share": 0.0792,
-      "name": "delivery_status",
-      "definition": "Customers are expressing dissatisfaction with their Prime delivery timelines not meeting promised expectations, specifically questioning why their orders are taking longer than the guaranteed delivery window (e.g., next day or 2-day delivery) despite having Prime membership.",
+      "cluster_id": 2,
+      "size": 840,
+      "share": 0.105,
+      "name": "refund_request",
+      "definition": "Customers requesting a refund for a purchased product or service after experiencing issues with delivery, product quality, or service.",
+      "is_coherent": false,
+      "notes": "This cluster contains messages that are mostly about refund requests but also includes some messages about delivery issues and account problems. The distinct group within this cluster is messages about refund requests for products that were not delivered or were damaged, while the other messages are about account issues and delivery problems.",
+      "exemplars": [
+        "so! You took money from account for no reason! Your customer service can’t help and now I’m on hold! Great service award to you!",
+        "fix it, when they should be trying to solve the problem before someone actually uses my account to buy something.",
+        "But now they are refusing.Neither returning my product nor returning my money. (3) <URL>",
+        "please resolve my account ossue whatever it is or else i am not going to take ur product which i m going to.receive tommrow return my money and keep ur account with u sorry to say will switch to.flipkart",
+        "no came to collect the product. Money has been not returned to my account. <URL>",
+        "has cheated with me They haven't delivered product to me and giving me wrong msg as well as given wrong communication they are doing. Without call or ID how u guys can delivered the product let me know. plz return my money.",
+        "Day 22: of NO RESOLUTION. For those of my friends who were interested in the details, I haven’t received my offer product as promised, and they are not able to return or refund my main product too!! And dis is a high value purchase.",
+        "See what is doing not able to deliver the product admitt their mistake apolzs and inform returning your amount but not get it yet <URL>"
+      ]
+    },
+    {
+      "cluster_id": 8,
+      "size": 811,
+      "share": 0.1014,
+      "name": "delivery_wrong_address",
+      "definition": "Customers report receiving delivery attempts at incorrect addresses or parcels being delivered to the wrong location, despite having a valid address.",
       "is_coherent": true,
-      "notes": "All messages consistently express frustration about delayed Prime deliveries not meeting promised timelines (e.g., next day, 2-day), with no distinct sub-intents. Annotator might misclassify messages that mention refunds or credits as separate intents, but these are secondary to the core issue of delivery status.",
+      "notes": "This cluster focuses on incorrect delivery addresses or locations, distinct from 'delivery_status_confusion' (which involves status discrepancies) and 'delivery_late' (which involves timing issues).",
+      "exemplars": [
+        "is on my bad list today. Their new delivery system not only failed to get my stuff to me, it sounds like their driver just handed my package to any passersby who was willing to forge my signature! I was 3 states away when this happened!!",
+        "Not only has my delivery gone missing, part of re-order was just left on doorstep, on main road. No knock at door, card or anything! #Angry at delivery driver doesn't quite cover it! Plus told to leave with neighbour. #Amazon #PoorService",
+        "just had an email to say my parcel couldn’t be delivered as couldn’t be left unattended- delivery address is a doctor’s surgery. Always someone on reception to receive and open until 18.30 🤔",
+        "For the fourth time in 2 months has “delivered” a package, but it wasn’t delivered to my building. I realize numbers are hard, but THEY ARE ON THE FRONT OF THE BUILDING. This time I have no idea where it is. #AmazonFixThis #IWantMySlippers",
+        "Ffs sort out your delivery drivers! 1 delivery left in the garden (gone when I got home) next 'failed to deliver'. Try neighbour",
+        "apparently my delivery has failed, despite the fact I've been in the house all day and haven't heard any attempts at delivery. Parcel not left in safe location either. Thoughts?",
+        "It's showing delivery attempted last night but nobody has came. I was at my home whole day. Pls recheck. <URL>",
+        "are you kidding me? I stayed home all day so I won’t miss my delivery and I just received an email saying they tried to deliver...."
+      ]
+    },
+    {
+      "cluster_id": 3,
+      "size": 751,
+      "share": 0.0939,
+      "name": "delivery_status_confusion",
+      "definition": "Customers express confusion about whether their Prime deliveries are meeting the promised delivery timeframes, often questioning why items are not arriving within the expected 1-2 days despite Prime eligibility.",
+      "is_coherent": false,
+      "notes": "This cluster is coherent but overlaps with existing 'delivery_status_confusion' label. The distinction is that these messages focus on the confusion about delivery timeframes rather than specific issues like late delivery or wrong address.",
       "exemplars": [
         "I don't know why I pay for Prime anymore. Out of the last 6 packages with One Day Delivery, 4 have been \"delayed\" and arrived after two days. So much for their \"guaranteed\" one day delivery. And just now I got an \"attempted but failed\" delivery. I'm at home. All day.",
         ". Prime is a good idea until you order something expecting next day delivery and it doesn’t bloody show!",
         "Dear , why am I paying for Prime when not one of my \"next day delivery\" Prime orders has arrived the next day?",
         "Of course my recent prime order wasn't delivered within their guaranteed 2 day window. It's only day 3. Not even sure why I pay for prime anymore.",
         "What is the point in paying prime if you're not going to deliver my items next day . Last 3 items I've ordered have all been 3-4 day deliverys now!!",
-        "why are all my prime deliveries I ordered Sunday arriving Thursday? That’s not next working day delivery so why am I paying for prime if I don’t get prime?",
         ", I ordered something on 11/24. The shipping, with prime, said I would get the package in 5 days. But for some reason it’s going to be at my place on 12/8. Why?????? What’s the point of paying for prime then??? <URL>",
+        "why are all my prime deliveries I ordered Sunday arriving Thursday? That’s not next working day delivery so why am I paying for prime if I don’t get prime?",
         "Why do I pay for Prime when nothing gets delivered in 2 days anymore...even when it says \"guaranteed\" ... #InternetWalmart"
       ]
     },
     {
-      "cluster_id": 6,
-      "size": 515,
-      "share": 0.0546,
-      "name": "delivery_status",
-      "definition": "Customers are asking about the current status of their package delivery, including delays, incorrect delivery dates, or missing packages.",
-      "is_coherent": false,
-      "notes": "The cluster contains two distinct groups: 1) Customers reporting delivery delays or missing packages (e.g., 'lleva una semana esperando', 'hoy me debió haber llegado', 'no me pueden enviar la compra'), and 2) Customers with positive feedback about delivery (e.g., 'Gracias por la rapidez y calidad del pedido'). The positive feedback message is an outlier and does not align with the rest of the cluster.",
-      "exemplars": [
-        "HOY me engañaron con entrega de un paquete y NO es cierto q vinieron a domicilio y me COBRARON envío 😡😡😡 <URL>",
-        "Gracias a por todas sus atenciones! Hoy finalmente pude recibir un pedido que estaba extraviado desde el Domingo.. Ya les llené la encuesta de servicio, pero si quieren mas detalles se los cuento por DM. #ComprasOnline",
-        "llevo una semana esperando 1paquete pq #MRW está pasando de todo.Yo he pagado para entrega d 1dia y me encuentro con esto?",
-        "Increíble que no puedan hacer una, una simple entrega Estoy altamente decepcionado! Su departamento de logística opera sin control alguno ni el más mínimo respeto por el cliente final! Quiero mi pedido ya! #ToodoMal",
-        "hola. Se supone que iba a recibir un paquete ayer, pasó todo el día y nada. En la página sigue diciendo \"en camino\" pero con fecha de ayer... Cabe destacar que estoy usando Amazon Prime",
-        ", explicadme qué ha pasado aquí. Reparto con Amazon Logistics. <URL>",
-        ", el buen servicio de la web lo perdéis en las entregas, lamentable que un pedido ya pagado acabe con cualquier desconocido. <URL>",
-        "Oye 46 días y aun no me puedes enviar la compra que ya pague, y tu servicio al cliente solo dice \" espere un poco más\"."
-      ]
-    },
-    {
-      "cluster_id": 2,
-      "size": 420,
-      "share": 0.0446,
-      "name": "delivery_status",
-      "definition": "Customers asking for confirmation or updates on the status of their Amazon package delivery.",
-      "is_coherent": true,
-      "notes": "Annotator might misclassify messages that explicitly request refunds or compensation as this intent, but all messages here focus on delivery status inquiries without specific financial requests.",
-      "exemplars": [
-        "Dis, , quand tu fais payer prime pour livraison en 1 jour, ca veut dire combien de jours en vrai? #marre #badservice",
-        "Bjr ! Colis non reçu alors que livraison aurait du s’effectuer aujourd’hui. Abonnement Amazon Prime 🤔",
-        "Commande passée en août toujours pas reçue !Mentionnée expédiée mais rien ! Je trouve ca inadmissible pour une marque comme amazon",
-        "dites Amazon, j'aimerais bien savoir comment vous pouvez affirmer pouvoir me livrer ce jour (en Premium) alors que le colis est coincé chez sans que la situation ne change. <URL>",
-        "Bonjour , un colis que je devais recevoir vendredi. Jamais livré, pas d'avis de passage, pas d'appel téléphonique (1/2) <URL>",
-        "bonjour j’ai un problème avec la livraison d’un colis, ça fait 1 semaine que j’attends et le vendeur rep pas aux messages amazon",
-        "Voilà comment la Poste livre mon colis Amazon en bourrant dans la BAL ! Vraiment honteux l'état de l'emballage. <URL>",
-        "Petit souci (#amazonproblemecolis) avec une transporteur (#colisprive) visiblement malhonnête puisque le colis a été notifié comme délivré alors que jamais reçu... De plus impossible de faire une réclamation côté ... Chouette !"
-      ]
-    },
-    {
       "cluster_id": 7,
-      "size": 318,
-      "share": 0.0337,
-      "name": "delivery_status",
-      "definition": "Customers asking about the current status of their package delivery or tracking information.",
-      "is_coherent": false,
-      "notes": "The cluster contains multiple distinct intents: 1) Package delivery delays and issues (e.g., messages 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24), 2) Prime Video service issues (e.g., message 19), 3) Phishing scam concerns (e.g., message 8), 4) Product availability for Prime members (e.g., message 4), 5) Alexa device issues (e.g., message 18, 23), 6) Refund requests (e.g., message 22). The messages are not coherent as they cover multiple unrelated topics.",
+      "size": 672,
+      "share": 0.084,
+      "name": "service_promise_violation",
+      "definition": "Customers reporting that promised services (e.g., delivery, refunds) were not fulfilled as stated, leading to frustration and distrust in the company's commitments.",
+      "is_coherent": true,
+      "notes": "This cluster focuses on broken promises (e.g., next-day delivery, refunds) rather than specific delivery or refund issues. Distinguishes from 'delivery_late' and 'refund_request' by emphasizing the broken promise aspect.",
       "exemplars": [
-        "Man , #Prime ist aber sehr unzuverlässig geworden. Wieder warten... Wichtige Bücher hole ich mir jetzt woanders!!! 📚",
-        ". lt. Amazon \"Paket wird vom Transportdienst zurückgestellt\" – warum?! Warte dringend auf die Lieferung! //",
-        "Schade, dass die Pakete mit versendet. Nach 3 Tagen versprechen ist mein Paket auf dem Rückweg zu Amazon...",
-        "habt ihr zufällig schon Informationen wann die 7 bzw 8 Staffel von Shamless für Amazon Prime Kunden kostenlos ist? :D",
-        "Moinsen! Zu früh, amazon prime video funzt nicht. Der Tag fängt schon mal meeega an. Schönen Tag, Ihr Lieben! 😘",
-        "hi, wieso schreibt ihr auf amazon at \"Adventskalender\" obwohl es \"Adventkalender\" heißt? 😢😯🤔 <URL>",
-        "warum verschickt Ihr Prime Sendungen mit Hermes?Schnelle Zustellungen klappen da nicht.Danke für einen versauten Mario Release",
-        "ACHTUNG! Es sind mal wieder Phishing Mails unterwegs bei denen man denken kann das sie von Amazon selbst sind! <URL>"
+        "when I tried contacting your customer care, my both attempts resulted in 2 different and false promises. Let me tell you, your customer care is a pain. All contacts is past also had been a pain. #nothingprimeinamazonprime",
+        "You quite literally have the worst customer service I have ever experienced. Purchased faulty product, would like postage it cost me to send the product back included with refund, 3rd attempt at explaining 20mins on hold now. Ridiculous.",
+        "I have just been on the phone for 40 minutes to your Customer Service. Most of the time on hold and the rest of the time talking to people who clearly had no clue how to resolve my problem. It's still not resolved. Completely appalling service.",
+        "Absolutely Shockingly bad customer service from I have been a prime customer for several years ans I expect what I pay for. Do not advertise next day delivery when you can’t honour it. I should be a priority and I’m not!! #crapservice",
+        ": poor customer service. Reported an issue on 17 Oct. ETA offered was 2 days. Issue isn’t still resolved.",
+        "The worst service ever experienced. 21 days of order but not yet delivered. Tried getting refund but no confirmation of that too. Tired of calling and chatting. #foolingCustomers.",
+        "the worst possible customer service. Quite happy to take your money but once you have a service issue. FU",
+        ". You guys truly have the worst customer service I’ve ever experienced. How you still manage to operate amazes me. Absolutely awful."
       ]
     },
     {
-      "cluster_id": 8,
-      "size": 309,
-      "share": 0.0328,
-      "name": "kindle_purchase",
-      "definition": "Customers who want to purchase a Kindle device or related product",
-      "is_coherent": false,
-      "notes": "The cluster contains two distinct groups: 1) Customers who have successfully purchased a Kindle and are happy with the delivery (e.g., 'Comprei meu Kindle!!!', 'Fiz uma compra na e recebi de surpresa este simpático boneco!', 'Recebi meu Kindle hoje da ; entrega rápida...'), and 2) Customers who are experiencing issues with their Kindle (e.g., 'agora é sério, meu kindle não ta carregando e nem ligando SOCORRO', 'meu Kindle travou e não responde nenhum comando, alô ajuda nois'). The first group expresses satisfaction with their purchase, while the second group is seeking technical assistance for Kindle problems.",
+      "cluster_id": 1,
+      "size": 599,
+      "share": 0.0749,
+      "name": "packaging_damage_complaint",
+      "definition": "Customers report receiving packages with damaged packaging that affects the product's condition, without a specific request for action beyond describing the issue.",
+      "is_coherent": true,
+      "notes": "This cluster focuses on packaging damage as the primary issue, distinct from delivery status or refund requests. It does not overlap with existing labels like 'delivery_status_confusion' or 'refund_request' as the customers are not explicitly asking for a resolution or refund but describing the damage.",
       "exemplars": [
-        "Olá, antes eu havia reclamado que a minha encomenda da Amazon Itália estava demorando, agora passo para avisar que recebi os meus dois CDs. Muito Feliz <3 <URL>",
-        "Oi, gente. (: Seguinte: quero muito comprar um Kindle hoje, mas tenho lido alguns relatos de problemas com aparelhos compra+",
-        "Já percebi que o único lugar onde se pode comprar livros de uma forma 100% confiável é na pois todos os outros sites demoram até pra confirmar que o pedido foi feito, Amazon tem meu respeito e confiança pra sempre 💙",
-        "Eu AMO a pois comprei livros na sexta e chegaram hoje!!!! Domingo :O o prazo era fim da semana que vem só Se não é o melhor serviço BR eu não sei qual é",
-        "Black Friday chegando, e eu quero saber se a vai me ajudar a comprar meu Kindle Paperwhite. ♥",
-        "Alô, ! O atendimento do Cristiano foi excelente! Solucionou meu problema. Obrigada :)",
-        "Fiquei super feliz pq comprei um kindle na na Black Friday e chegou hj Mas o touch dele não tá funcionando :'(",
-        "Torcendo para que a compra de #TartarugasAteLaEmbaixo e #AImprovávelAnnelise na tenha dado certo! 🍀🍀🍀"
+        ", you really need to rethink your packaging. Every time the boxes are damaged. <URL>",
+        "amazon <URL> my purchased product was sent in flimsy packaging and arrived damaged. I see... <URL>",
+        "This is not acceptable. This was delivered today. No packaging. Just a label on the box. Apart from the damage, my son now knows what he's getting for Christmas. <URL>",
+        "My package from was shipped in a box. At first I thought someone had sent me for Christmas, but the box wasn’t quite big enough. 😊 <URL>",
+        "Very, VERY disappointed, . This is not the first time a book has been sent to me in an envelope and was damaged. Books need boxes! <URL>",
+        ". Really, I know parcels are packed to prevent damage but this is #stupidity,#poorpackaging,#ridiculous <URL>",
+        "Ordered a machine from and this is how someone packaged it. Yes that’s a piece of a wooden pallet going through the box and yes the machine is damaged. 😕 <URL>",
+        "My package filled with Christmas presents may be lost?! Are you kidding me, ?! You better find my package and deliver it today. <URL>"
+      ]
+    },
+    {
+      "cluster_id": 0,
+      "size": 584,
+      "share": 0.073,
+      "name": "prime_music_echo_integration",
+      "definition": "Customers seeking to resolve issues with integrating Amazon Prime Music functionality on their Amazon Echo devices, particularly in India.",
+      "is_coherent": true,
+      "notes": "This cluster focuses on Echo device compatibility with Prime Music in India, distinct from delivery-related issues or other app functionality complaints.",
+      "exemplars": [
+        "#amazonecho \"Alexa, please come to my home\" I requested on Oct 4 and I'm big fan of Alexa Give me invitation",
+        "The channel app on my Amazon fire stick isn't working and it's pissing me off. For some reason #PlayStationVue isn't listed as a cable provider.",
+        "Can we play music through a phone? - \"Amazon Echo\"",
+        "I bought the Amazon Dot Echo but you haven't yet activated my Amazon Prime for a year.",
+        "Amazon Prime Music Incoming? Echo description shows on Amazon India.",
+        "can you guys change my account settings? I'm not able to use prime music on my echo dot.",
+        "Haven't been able to get Amazon Music to work on the Echo Dot so far. It plays content only from Saavn. #India",
+        "your description of echo dot includes \"play music on amazon prime music\". Is that available now in India or coming up?! yay!!"
+      ]
+    },
+    {
+      "cluster_id": 5,
+      "size": 551,
+      "share": 0.0689,
+      "name": "delivery_status_confusion",
+      "definition": "Customers reporting discrepancies between system status (delivered) and physical receipt of the product, with no clear resolution or specific action requested beyond stating the issue.",
+      "is_coherent": false,
+      "notes": "This cluster contains messages where customers report that their order shows as delivered but they haven't received the product. The messages are coherent as they all share the same core issue: discrepancy between system status and physical receipt. However, the label 'delivery_status_confusion' is already used in the provided labels, so we need to find a distinct label. The existing labels include 'delivery_status_confusion' multiple times, so we must choose a different label that captures the specific nuance. Looking at the messages, they all describe the same issue: orders showing delivered but not received. The label 'delivery_status_confusion' is already used, so we need to pick a label that is distinct. The closest existing label is 'delivery_status_confusion', but since it's already used, we have to create a new one. However, the instructions say the label must be distinct from the already-used labels. The already-used labels are: 'delivery_status_confusion', 'delivery_late', 'delivery_status_confusion', 'refund_request', 'delivery_wrong_address', 'delivery_status_confusion', 'service_promise_violation', 'packaging_damage_complaint', 'prime_music_echo_integration'. So the label 'delivery_status_confusion' is already used, so we need to find a different label that captures the specific nuance. The messages are about orders showing delivered but not received, which is a status confusion. But since 'delivery_status_confusion' is already used, we have to pick a label that is distinct. The problem says: 'The label MUST be distinct from the already-used labels listed above'. So we need to create a new label that is distinct. Let's think: the messages are all about orders showing delivered but not received. This is a specific type of status confusion. The existing labels don't have a label for this specific scenario. The label 'delivery_status_confusion' is already used, so we have to create a new label. But the problem says: 'Produce: name: a short snake_case intent label describing what these customers WANT'. The customers want help resolving the discrepancy. The label could be 'delivery_status_mismatch' or 'delivery_status_discrepancy'. However, the problem says: 'Prefer ",
+      "exemplars": [
+        ", Order# 404-3608255-3278719, ordered but not received, getting no help from your side except to wait as told. <URL>",
+        "My order id-403-9709406-6345932 Product showing delivered but not delivered yet. Very bad customer service support. <URL>",
+        "my order no 403-2881035-1260303 shown delivered but yet to reach me.",
+        ": order marked as delivered on 16-08-17 not yet received. Help and please do work on customer support services.",
+        "Haven't been delivered my product yet. Pathetic service. View order details Order date 22-Oct-2017 Order # 407-1197683-6439542",
+        "I have received the ORDER # 402-9389284-8265946 but it shows undelivered. Spare the refund as I have already received it. <URL>",
+        ":seriously m dissatisfied with ur service.Fedup regarding return and refund of product. Order # 405-4729765-7965919",
+        "My Order# 404-4244805-4392323 shows as Delivered on 03 Nov 2017, but I have still not received it!! Kindly revert urgently."
       ]
     }
   ]
