@@ -39,9 +39,24 @@ Pooling would mislead in both directions — the rare stratum drags accuracy
 below real-traffic performance, and the proportional stratum hides the tail.
 The report leads with the traffic-weighted (`proportional`) number.
 
+### Known leak in the language filter
+
+The English filter keys on function words and on Latin-1 diacritics, so it
+misses short mixed-script messages where Latin brand names dominate — e.g.
+`amazon echo 楽しいー`. Measured residue: **10 of 8,496 threads (0.12%)**, of
+which exactly **1** landed in the 150 golden candidates, in the `adversarial`
+stratum.
+
+It was left in rather than fixed. Fixing it means rebuilding the corpus, which
+changes the clustering, which changes the taxonomy, which invalidates the weak
+labels — about an hour of compute plus a re-merge, to move 0.12% of the corpus.
+And a foreign-language message is a legitimately hard routing case, which is
+what the adversarial stratum is for. The residue is reported here so the number
+is known rather than assumed to be zero.
+
 ## Dev/test split
 
-40% dev (~60) / 60% test (~90), assigned by stable hash of the thread id
+dev 70 / test 80, assigned by stable hash of the thread id
 **at sampling time, before any label was written**. It therefore cannot have
 been chosen after seeing which split flattered the results.
 
