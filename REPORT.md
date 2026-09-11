@@ -147,9 +147,16 @@ rate is published for exactly this reason — the lower it is, the more the
 golden set measures agreement-with-the-model rather than ground truth. This is
 an anchoring bias that no amount of care fully removes.
 
-**3. n ≈ 90 on the test split. The intervals are wide.**
+**2b. The language filter leaks, and the number is known.**
+10 of 8,496 corpus threads (0.12%) are non-English messages that survived the
+filter because Latin brand names dominate the token count
+(`amazon echo 楽しいー`). One is in the golden set. Left unfixed deliberately:
+correcting it would rebuild the corpus, clustering, taxonomy and weak labels to
+move 0.12% of the data.
+
+**3. n = 80 on the test split. The intervals are wide.**
 The golden set is 150 rather than 250 because the compute budget was a local 4B
-model, not because 150 was enough. Differences under roughly 10 points between
+model, not because 150 was enough; that splits 70 dev / 80 test. Differences under roughly 10 points between
 systems are not distinguishable from noise at this sample size. Any ranking that depends on a small gap should
 be read as "not established", not "smaller".
 
