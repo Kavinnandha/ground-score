@@ -11,10 +11,7 @@ PyYAML>=6.0
 rich>=13.0
 pytest>=8.0
 
-# OPTIONAL. Only needed for GROUNDSCORE_PROVIDER=gemini. The default backend is
-# local Ollama over plain HTTP, which needs no SDK at all.
-# google-genai>=1.0
-
-# OPTIONAL. Only needed for GROUNDSCORE_PROVIDER=anthropic (the hosted backend
-# used to produce the published results). Offline replay never imports it.
-anthropic>=0.40
+# Needed for the hosted Gemini path, which is where the @judge role runs by
+# default. Drafting and embeddings go to local Ollama over plain HTTP, which
+# needs no SDK at all. Offline replay imports neither.
+google-genai>=1.0

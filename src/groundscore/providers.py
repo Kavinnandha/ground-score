@@ -1,48 +1,52 @@
-"""Model backends: local Ollama, hosted Anthropic, hosted Gemini.
+"""Model backends: local Ollama and hosted Gemini.
 
-This module holds the Ollama transport; the hosted paths live in `llm.py`
-alongside the cache that fronts all three.
+This module holds the Ollama transport; the hosted path lives in `llm.py`
+alongside the cache that fronts both.
 
 How a backend is chosen
 -----------------------
 Not globally. Each ROLE has its own ordered provider chain (see llm.role_chain):
-the drafter heads at `anthropic`, the judge heads at `gemini`, embeddings are
+the drafter heads at `ollama`, the judge heads at `gemini`, embeddings are
 `ollama` only. The judge must not share the drafter's lineage, and making that a
 property of the role rather than of the run means it holds by default instead of
 by remembering to set an env var. DECISIONS.md #32.
 
-The local-only plan below was correct about quota and wrong about hardware: it
-assumed a discrete GPU, and on an Intel iGPU a 4B model runs ~60-90s per call
-against a ~1000-call evaluation.
+Replay is keyless: the response cache is committed and `make reproduce` runs
+with keys stripped. Only *regenerating* results needs a key.
 
-Replay is still keyless: the response cache is committed and `make reproduce`
-runs with keys stripped. Only *regenerating* results needs a key.
+Why generation is local and only judging is hosted
+--------------------------------------------------
+Volume decides it. A full evaluation of this project is roughly a thousand
+calls; a judged split alone is ~450. The Gemini free tier caps
+`generate_content` per DAY per model, and even the most generous id this key can
+reach that is reliable enough to trust is 500/day. There is no hosted budget for
+the drafting side, so drafting runs locally, where there is no quota at all.
 
-Why local was the default
--------------------------
-The Gemini free tier meters `generate_content` at **20 requests per day, per
-model** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, confirmed from the
-429 body). A full evaluation of this project needs roughly a thousand calls.
-Even spread across every reachable Gemini model that ceiling is ~120/day, so the
-API was not a viable backend for the work regardless of how the calls were paced.
+Locally, on a GTX 1660 Ti (6GB), a 4B model at q4 sits entirely in VRAM and
+answers in a few seconds. That is what makes the local drafter a real backend
+rather than a bottleneck -- an earlier revision of this project ran on Intel
+integrated graphics, where the same model took 60-90s per call and a full
+evaluation took 12-24 hours. The hardware, not the architecture, was what
+changed. See DECISIONS.md #28.
 
-Running locally through Ollama removes the quota entirely and buys three things
-the hosted path could not offer:
+Running the drafter locally buys three things the hosted path could not:
 
   * **Reproducibility.** A reviewer with the same model tag reproduces the
     outputs. No key, no billing, no rate limit, no model deprecation.
-  * **A genuinely independent judge.** The drafter is Qwen and the judge is a
-    different family. The original design could only *measure* same-family
-    self-preference; this removes most of it by construction.
+  * **A genuinely independent judge.** The drafter is Qwen (local) and the judge
+    is Gemini (hosted) -- different vendor, different family, different weights.
+    The original design could only *measure* same-family self-preference; this
+    removes most of it by construction.
   * **Volume.** Bias probes and ablations become affordable, so the evaluation
     can be thorough instead of rationed.
 
-The cost is capability: a 4B local model is weaker than Gemini flash at
-instruction-following and JSON discipline. That shows up in the results as
-lower reply quality, and the report says so plainly rather than implying the
+The cost is capability: a 4B local model is weaker than a hosted flash model at
+instruction-following and JSON discipline. That shows up in the results as lower
+reply quality, and the report says so plainly rather than implying the
 architecture is what limits the ceiling.
 
-Gemini remains fully supported. Set GROUNDSCORE_PROVIDER=gemini to use it.
+Drafting on Gemini is one variable away (GROUNDSCORE_PROVIDER=gemini), and is
+worth doing on a paid key; on the free tier it exhausts in a few hundred rows.
 """
 
 from __future__ import annotations
@@ -58,6 +62,12 @@ OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 
 # Local model roles. The judge is deliberately a different family from the
 # drafter -- see the module docstring.
+#
+# These tags are hashed into the committed response cache, so changing a default
+# here orphans every cached row that used it and `make reproduce` starts
+# demanding live calls. A 6GB card has headroom for a 7-8B q4 drafter, but that
+# is a cache-invalidating change, not a free upgrade: regenerate deliberately
+# with `make full` rather than by editing this line.
 OLLAMA_FAST = os.environ.get("GROUNDSCORE_MODEL_FAST", "qwen3:4b")
 OLLAMA_JUDGE = os.environ.get("GROUNDSCORE_MODEL_JUDGE", "gemma3:4b")
 OLLAMA_EMBED = os.environ.get("GROUNDSCORE_MODEL_EMBED", "nomic-embed-text")
@@ -165,11 +175,11 @@ def embed(model: str, texts: list[str], *, timeout: int = DEFAULT_TIMEOUT) -> li
     return vectors
 
 
-KNOWN_PROVIDERS = ("ollama", "anthropic", "gemini")
+KNOWN_PROVIDERS = ("ollama", "gemini")
 
 
 def provider_name() -> str:
-    """Active backend: 'ollama' (default), 'anthropic', or 'gemini'.
+    """Active backend: 'ollama' (default) or 'gemini'.
 
     An unrecognised value is rejected rather than defaulted. A typo used to
     fall through to the hosted branch, which meant a run could quietly use a

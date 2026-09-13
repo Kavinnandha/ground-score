@@ -56,15 +56,16 @@ self-preference. How well it is met changed twice. Plan one was flash drafts /
 pro judge (no pro quota). Plan two went local and met it best: drafter
 `qwen3:4b`, judge `gemma3:4b` — different families, different weights, so
 self-preference was largely removed by construction rather than measured.
-Plan three (#28) put the drafter on a hosted Anthropic key. Briefly the judge
-went there too, which *lost* the property: one vendor grading its own family,
-with only a capability gap (`claude-opus-5` judging `claude-haiku-4-5`) standing
-in for independence. That was a regression, so it was not kept.
+Plan three (#28) put the drafter on a hosted key, and briefly the judge went to
+the same vendor, which *lost* the property: one vendor grading its own family,
+with only a capability gap standing in for independence. That was a regression,
+so it was not kept.
 
 The shipped design restores independence structurally by making the provider a
 property of the **role** rather than of the run (#32): the drafter chain heads
-at `anthropic`, the judge chain heads at `gemini`. Different vendors, different
-training data — self-preference is again largely removed by construction rather
+at `ollama` (`qwen3:4b`), the judge chain heads at `gemini`
+(`gemini-3.1-flash-lite`). Different vendors, different families, different
+weights — self-preference is again largely removed by construction rather
 than merely bounded. The probe in `eval/judge_agreement.py` now reports
 `same_vendor_as_drafter`, so a reader can tell which regime produced any given
 number: false means the delta is a cross-vendor sanity check, true means the
@@ -267,45 +268,60 @@ it to articulate what separates each cluster. Without this the taxonomy would
 have discarded most of the structure the clustering actually found, and the
 classification task would have looked far easier than it is.
 
-**28. The shipped backend is a hosted Anthropic key, reversing #22 — because the hardware the local plan assumed did not exist.**
-Decision #22 moved everything local to escape the Gemini daily cap, and that
-was right at the time. It assumed a discrete GPU ("fits a 6GB GPU"). The machine
-this was finished on has Intel integrated graphics and 8 CPU cores, where a 4B
-model runs at roughly 60–90s per call against a ~1000-call evaluation: 12–24
-hours per full run, and every prompt change costs another overnight. That is not
-a backend, it is a bottleneck, and it would have forced the evaluation to shrink
-to fit — exactly the pressure this project is supposed to resist.
+**28. Generation moved to a hosted key when the hardware #22 assumed turned out not to exist — and moved back when it did.**
+Decision #22 moved everything local to escape the Gemini daily cap, and it
+assumed a discrete GPU ("fits a 6GB GPU"). The machine the first pass was
+finished on had Intel integrated graphics and 8 CPU cores, where a 4B model runs
+at roughly 60–90s per call against a ~1000-call evaluation: 12–24 hours per full
+run, and every prompt change costs another overnight. That is not a backend, it
+is a bottleneck, so generation moved to a hosted key.
 
-So generation moved to `GROUNDSCORE_PROVIDER=anthropic`: `claude-haiku-4-5`
-classifies and drafts, `claude-opus-5` judges. What this costs, stated plainly:
+The project then moved to a machine with a **GTX 1660 Ti (6GB)** — the hardware
+#22 originally assumed. A 4B model at q4 fits entirely in that VRAM alongside the
+8K context and answers in seconds, so the reason for going hosted is simply gone
+and #22's argument applies again as written. Drafting is local again
+(`GROUNDSCORE_PROVIDER=ollama`, `qwen3:4b`); only the judge is hosted, because
+that is the one role where a *different vendor* is worth spending quota on.
 
-  * **Keyless reproduction is gone for *regeneration*.** It survives for
-    *replay*: the response cache is still committed and `make reproduce` still
-    runs with keys stripped and `GROUNDSCORE_OFFLINE=1`. A reviewer reproduces
-    the published numbers with no key; only changing a prompt needs one.
-  * **The independent-family judge is gone** (see #5), replaced by a measured
-    correction rather than a structural guarantee.
-  * **Model deprecation can invalidate regeneration later** in a way local model
-    tags would not have.
+What this recovers, relative to the hosted-drafter revision:
 
-What it buys is the ability to run the evaluation at all on this hardware,
-several times, including the bias probes and the ablation — and a drafter that
-is a realistic production choice for a high-volume triage route rather than a
-4B model chosen because it fit in RAM.
+  * **Keyless regeneration**, not just keyless replay. Only the judge needs a
+    key now, and it has a local fallback.
+  * **The independent-family judge as a structural guarantee** (see #5) rather
+    than a measured correction.
+  * **Immunity to model deprecation** for the ~1000 drafting calls, which are
+    pinned to a local model tag rather than a hosted id.
 
-Embeddings did **not** move: Anthropic serves none. The embedding cache is keyed
-on `(model, dim, text)` and not on provider, so the committed `nomic-embed-text`
-vectors remain valid and every corpus and golden text is already in them. A miss
-raises rather than silently re-embedding into a second vector space, which would
-have quietly changed what "similar" means half way through an index.
+What it costs is capability: a 4B local drafter is weaker at instruction
+following and JSON discipline than a hosted flash model, so reply quality is
+lower than this architecture could reach. The report states that rather than
+implying the ceiling is architectural. `GROUNDSCORE_ROLE_FAST=gemini` switches
+drafting back for anyone with a paid key.
 
-**29. `temperature` is not sent to the models that reject it.**
-Sampling parameters were removed on the current Anthropic generation:
-`temperature=0.0` to `claude-opus-5` is a 400, not a warning. The adapter sends
-temperature only to models that still accept it and sends `effort` to the rest.
-The pipeline pins temperature 0.0 everywhere it can, but this is a reminder that
-temperature never carried reproducibility here — the committed cache does, which
-is why that was built first.
+Embeddings never moved through any of this. The embedding cache is keyed on
+`(model, dim, text)` and not on provider, so the committed `nomic-embed-text`
+vectors stayed valid across every backend change. A miss raises rather than
+silently re-embedding into a second vector space, which would have quietly
+changed what "similar" means half way through an index.
+
+**29. Hosted-model quirks are handled in the adapter, not worked around at the call sites.**
+Two are load-bearing, and both were found by probing the API rather than by
+reading docs. `gemma-4-31b-it` returns **500 INTERNAL** on every attempt when
+`response_schema` is sent without a `system_instruction`, and returns valid JSON
+as soon as any system instruction is present; `_call_gemini` injects a minimal
+one when the caller supplied none. It is injected in the adapter specifically so
+the **cache key stays the system prompt the caller wrote** — the same logical
+call has to hash identically whichever model happens to serve it, or reordering
+a chain would silently orphan the committed cache.
+
+The same model also returns 503 "high demand" under ordinary load, which is why
+it is not the default judge despite having 700x the daily budget of the
+alternatives. A judge that intermittently fails mid-split is a judge that
+produces a split scored by two models.
+
+Temperature is pinned to 0.0 everywhere it is accepted, but it never carried
+reproducibility here — the committed cache does, which is why that was built
+first.
 
 **30. The learned baselines are scored out-of-fold on dev, because the obvious way to score them was in-sample.**
 `build_systems()` fits the baselines on dev. Scoring `--split dev` then handed
@@ -337,7 +353,7 @@ wrong runbook is followed.
 self-preference probe. That makes the single most important property of the
 judge — that it does not share the drafter's lineage — an accident of which key
 happened to be set. Roles now carry their own chains (`GROUNDSCORE_ROLE_JUDGE`,
-default `gemini,ollama`, against a drafter defaulting to `anthropic`), so
+default `gemini,ollama`, against a drafter defaulting to `ollama`), so
 cross-vendor judging is the default rather than something to remember.
 
 The chain also solves the quota problem #22 ran into, without pretending it does
@@ -357,11 +373,49 @@ not exist. Three properties make the fallback safe to trust:
     is then *visible* rather than averaged into one number — which is the only
     honest option, because those rows cannot be pooled.
 
-The remaining exposure is stated rather than engineered away: on Gemini's free
-tier (20 calls/day/model) the judge will exhaust almost immediately against ~450
-judge calls, so in practice the judge must either run locally on a GPU box or on
-a paid tier. The chain makes that a visible operational fact instead of a silent
-change of judge half way down the table.
+The remaining exposure is stated rather than engineered away, and #33 narrows
+it: the judge now points at the one free-tier class whose daily budget actually
+covers a split. It is still one split per day. The chain makes an overrun a
+visible operational fact instead of a silent change of judge half way down the
+table.
+
+**33. Hosted model ids are chosen on daily budget, and pacing is per model rather than per run.**
+The free tier's binding constraint is requests-per-day-per-model, and across the
+ids this key can reach it varies by 700x: `gemini-3.x-flash` allows 20/day,
+`gemini-3.x-flash-lite` 500/day, `gemma-4-31b-it` 14,400/day. A judged split is
+~450 calls. That single fact picked the models: both hosted roles sit on
+`*-flash-lite`, which is the smallest class that covers a split, and the higher
+budget of `gemma-4-31b-it` is declined for the reliability reasons in #29.
+
+Two consequences are implemented rather than left to the server:
+
+  * **Pacing is per model.** RPM ranges from 5 to 30 across these ids. One
+    global rate either throttles the fast models to a fraction of their
+    allowance or drives the slow ones straight into 429s, and backoff costs more
+    wall clock than pacing does up front. The table lives in `llm.GEMINI_LIMITS`
+    and is used at 80% of the documented rate, because the ceiling is enforced
+    on the server's clock and sitting exactly on it produces 429s from skew.
+  * **The daily cap is refused locally.** Once a model has served its documented
+    RPD in this process, `_throttle` raises `DailyQuotaExhausted` so the chain
+    falls through to Ollama on the next call. Letting the server enforce it
+    instead costs a full retry ladder per row for the remainder of the run. The
+    counter is in-process and says so: it prevents one run from burning a day's
+    budget, it does not know what an earlier run spent.
+
+Live call counts per model land in `results/eval_*.json` under
+`providers.live_calls`, so a reader can see exactly how much hosted quota
+produced a given table.
+
+**34. Anthropic support was removed rather than left in as a third backend.**
+It was the shipped backend for one revision (#28) and became dead weight when
+drafting moved back to local: no key for it, no rows in the committed cache
+keyed to it, and no role pointing at it. Keeping it would have meant three
+provider branches, three credential lookups and a `_strict_schema` adapter that
+nothing exercised — code that cannot be wrong because it never runs, until
+someone sets the env var and finds out. `KNOWN_PROVIDERS` is now
+`("ollama", "gemini")` and a chain naming anything else raises at startup, which
+is asserted in `tests/test_pipeline.py`. Nothing in the committed cache was
+invalidated: it holds `qwen3:4b` and Gemini rows only.
 
 ---
 
@@ -371,8 +425,8 @@ change of judge half way down the table.
   (Kaggle, `thoughtvector`), used under its Kaggle licence.
 - `scikit-learn` for TF-IDF, KMeans, silhouette, logistic regression, and the
   classification metrics; `scipy` for Spearman.
-- `anthropic` Python SDK for the shipped hosted backend; `google-genai` SDK for
-  the Gemini path; Ollama's HTTP API (no SDK) for the local path.
+- `google-genai` SDK for the hosted Gemini judge; Ollama's HTTP API (no SDK)
+  for the local drafting and embedding paths.
 - Percentile bootstrap and quadratic-weighted κ are standard methods; the
   implementations here are written against `sklearn`/`numpy` primitives rather
   than copied.

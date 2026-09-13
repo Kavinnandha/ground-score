@@ -43,44 +43,62 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CACHE_PATH = Path(os.environ.get(
     "GROUNDSCORE_CACHE_PATH", REPO_ROOT / "cache" / "llm_cache.sqlite"))
 
-# Gemini ids, used only when GROUNDSCORE_PROVIDER=gemini. Probed 2026-09 on the
-# free tier: every *-pro model returns 429 (no pro quota), gemini-3.8-flash
-# returns 503, and generate_content is capped at 20 requests PER DAY PER MODEL
-# -- which is why the default backend is local. See providers.py and
-# DECISIONS.md #22.
-GEMINI_FAST = "gemini-3.5-flash"
-GEMINI_JUDGE = "gemini-3.7-flash"
-GEMINI_JUDGE_CROSS = "gemma-4-31b-it"
-GEMINI_EMBED = "gemini-embedding-001"
-
-# Anthropic ids, used when GROUNDSCORE_PROVIDER=anthropic.
+# Gemini ids, used when a role resolves to the `gemini` provider. All are
+# env-overridable, because the binding constraint on the free tier is requests
+# per DAY, and that number moves.
 #
-# The drafter is deliberately the cheap, fast model: a support triage route is
-# high-volume and latency-sensitive, so Haiku is what this system would actually
-# run in production, and evaluating a model nobody would deploy proves nothing.
+# Measured against this key (2026-09, free tier). The daily cap, not capability,
+# is what picked these:
 #
-# The judge is deliberately STRONGER than the drafter. On the local backend the
-# judge was a different family (gemma judging qwen); on one Anthropic key that
-# separation is impossible, so it is replaced with a capability gap in the safe
-# direction -- a strong model grading a weaker one. The residual same-vendor
-# risk is not waved away: MODEL_JUDGE_CROSS re-scores with the drafter's own
-# model, so self-preference is measured rather than assumed absent. See
-# DECISIONS.md #5 and the report's limitations section.
-ANTHROPIC_FAST = os.environ.get("GROUNDSCORE_ANTHROPIC_FAST", "claude-haiku-4-5")
-ANTHROPIC_JUDGE = os.environ.get("GROUNDSCORE_ANTHROPIC_JUDGE", "claude-opus-5")
+#   gemini-3.x-flash        5 RPM /    20 RPD  unusable: a judged split is ~450 calls
+#   gemini-3.x-flash-lite  15 RPM /   500 RPD  the smallest tier that covers a split
+#   gemma-4-31b-it         30 RPM / 14400 RPD  huge budget, but see below
+#
+# gemma-4-31b-it looks like the obvious judge on budget alone and is not the
+# default, for two reproducible reasons: it returns 503 "high demand" under
+# ordinary load, and it returns 500 on `response_schema` unless a
+# `system_instruction` is sent alongside it. Both are handled (see
+# `_call_gemini`) so it stays a working escape hatch for when the 500/day
+# lite budget runs out -- GROUNDSCORE_GEMINI_JUDGE=gemma-4-31b-it -- but a
+# judge that intermittently 503s cannot be what a headline number rests on.
+#
+# The judge is pinned to a different generation from the drafter so the two
+# cannot collapse onto one model if drafting is also moved to Gemini.
+GEMINI_FAST = os.environ.get("GROUNDSCORE_GEMINI_FAST", "gemini-3.5-flash-lite")
+GEMINI_JUDGE = os.environ.get("GROUNDSCORE_GEMINI_JUDGE", "gemini-3.1-flash-lite")
 
-# Anthropic has no embeddings endpoint. The embedding cache is keyed on
-# (model, dim, text) and NOT on provider, so the committed nomic-embed-text
-# vectors stay valid while generation runs on a hosted API. Every corpus and
-# golden-set text is already in that cache; a miss raises rather than silently
-# switching backends and changing what "similar" means mid-evaluation.
-ANTHROPIC_EMBED = providers.OLLAMA_EMBED
+# The self-preference probe re-scores with the DRAFTER's own model -- that is
+# the entire point of the probe -- so this tracks GEMINI_FAST rather than being
+# a third independent id that could drift away from it.
+GEMINI_JUDGE_CROSS = GEMINI_FAST
 
-# Sampling parameters were removed on the 4.6+ generation: sending temperature
-# to Opus 5 or Sonnet 5 is a 400, not a warning. Only the models that still
-# accept it get it, which is why temperature cannot carry reproducibility here
-# -- the cache does.
-ANTHROPIC_ACCEPTS_TEMPERATURE = ("claude-haiku-4-5",)
+# Only reachable via GROUNDSCORE_PROVIDER=gemini for embeddings, which is not
+# the shipped path: the committed vectors are nomic-embed-text and the cache is
+# keyed on the model name, so switching here starts a second, empty vector
+# space rather than reusing anything. See embed.py.
+GEMINI_EMBED = os.environ.get("GROUNDSCORE_GEMINI_EMBED", "gemini-embedding-001")
+
+# Free-tier ceilings per model id, as (requests/minute, requests/day). Used to
+# pace live calls and to fail early rather than after a hundred 429s. Anything
+# not listed falls back to CONSERVATIVE_LIMIT.
+GEMINI_LIMITS: dict[str, tuple[int, int]] = {
+    "gemini-3.5-flash-lite": (15, 500),
+    "gemini-3.1-flash-lite": (15, 500),
+    "gemini-2.5-flash-lite": (10, 20),
+    "gemini-3.8-flash": (5, 20),
+    "gemini-3.7-flash": (5, 20),
+    "gemini-3.6-flash": (5, 20),
+    "gemini-3.5-flash": (5, 20),
+    "gemini-3-flash": (5, 20),
+    "gemini-2.5-flash": (5, 20),
+    # 30 RPM on paper, but the 16K TPM ceiling binds first at judge-sized
+    # prompts, so it is paced as if it were 8 RPM.
+    "gemma-4-31b-it": (8, 14400),
+    "gemma-4-26b-a4b-it": (8, 14400),
+    "gemini-embedding-001": (100, 1000),
+    "gemini-embedding-2": (100, 1000),
+}
+CONSERVATIVE_LIMIT = (4, 20)
 
 
 def provider() -> str:
@@ -101,7 +119,6 @@ MODEL_JUDGE_CROSS = "@cross"
 MODEL_EMBED = providers.OLLAMA_EMBED
 
 _ROLE_MODELS = {
-    "anthropic": {"fast": ANTHROPIC_FAST, "judge": ANTHROPIC_JUDGE, "cross": ANTHROPIC_FAST},
     "gemini": {"fast": GEMINI_FAST, "judge": GEMINI_JUDGE, "cross": GEMINI_JUDGE_CROSS},
     "ollama": {"fast": providers.OLLAMA_FAST, "judge": providers.OLLAMA_JUDGE,
                "cross": providers.OLLAMA_FAST},
@@ -150,16 +167,13 @@ def role_chain(role: str) -> tuple[str, ...]:
 def _why_unusable(prov: str) -> str:
     if prov == "ollama":
         return f"not reachable at {providers.OLLAMA_HOST}"
-    return f"no API key ({'ANTHROPIC_API_KEY' if prov == 'anthropic' else 'GEMINI_API_KEY'} unset)"
+    return "no API key (GEMINI_API_KEY unset)"
 
 
 def usable(prov: str) -> bool:
     """Whether `prov` could serve a live call right now."""
     if prov == "ollama":
         return providers.available()
-    if prov == "anthropic":
-        return bool(os.environ.get("ANTHROPIC_API_KEY")
-                    or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
     return bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
 
 
@@ -191,15 +205,22 @@ def provider_report() -> dict[str, Any]:
     """Serving providers and any mid-run switches, for the results files."""
     return {"serving": dict(SERVING), "switches":
             [e for e in PROVIDER_EVENTS if e["previous"] is not None],
-            "chains": {r: role_chain(r) for r in ("fast", "judge", "cross")}}
+            "chains": {r: role_chain(r) for r in ("fast", "judge", "cross")},
+            "live_calls": quota_report()}
 
 DEFAULT_TEMPERATURE = 0.0
 
-# Free-tier keys are rate limited per minute. Measured empirically on this key:
-# generate_content starts returning 429 at the 5th call inside a minute, well
-# below the documented allowance. Exceeding the limit costs more wall clock in
-# backoff than pacing does up front, so calls are spaced to stay under it.
-RPM_LIMIT = int(os.environ.get("GROUNDSCORE_RPM", "4"))
+# Pacing is per MODEL, not per run, because free-tier ceilings differ by an
+# order of magnitude across the ids this project uses (5 RPM for flash, 15 for
+# flash-lite). A single global RPM either throttles the fast models pointlessly
+# or hammers the slow ones into backoff, and backoff costs more wall clock than
+# pacing does up front. GROUNDSCORE_RPM overrides the table for every model.
+RPM_OVERRIDE = int(os.environ.get("GROUNDSCORE_RPM", "0"))
+
+# Fraction of the documented RPM actually used. The ceilings are enforced on
+# the server's clock, not ours, so sitting exactly on the limit produces 429s
+# from clock skew alone.
+RPM_HEADROOM = 0.8
 
 
 class OfflineCacheMiss(RuntimeError):
@@ -303,20 +324,13 @@ load_dotenv()
 def api_key() -> str | None:
     """Credential for the active provider, or None.
 
-    Provider-aware on purpose: with a single global lookup, running the
-    Anthropic backend with only a stale Gemini key exported would report
-    "have key", sail past the offline guard, and fail deep inside a 1000-call
-    evaluation instead of at startup.
+    Provider-aware on purpose: a single global lookup would report "have key"
+    for a run whose active backend cannot use that key, sail past the offline
+    guard, and fail deep inside a 1000-call evaluation instead of at startup.
     """
-    if provider() == "anthropic":
-        # AUTH_TOKEN counts as a credential but is not an api_key -- the SDK
-        # sends it on a different header, so only API_KEY is passed explicitly
-        # to the client constructor (see _get_anthropic_client).
-        key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
-    elif provider() == "ollama":
+    if provider() == "ollama":
         return None  # local backend needs no credential; see offline()
-    else:
-        key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     return key.strip() if key and key.strip() else None
 
 
@@ -349,23 +363,56 @@ def _get_client():
 
 
 _rate_lock = threading.Lock()
-_last_call_at = 0.0
+_last_call_at: dict[str, float] = {}
+_calls_today: dict[str, int] = {}
 
 
-def _throttle() -> None:
-    """Space out live API calls to stay under the per-minute quota.
+class DailyQuotaExhausted(RuntimeError):
+    """The in-process count for a model has reached its documented RPD.
+
+    Raised rather than left to the server so the chain can fall through to the
+    next provider on a clear signal, instead of after a retry ladder of 429s
+    that costs minutes per row across a long run.
+    """
+
+
+def limits_for(model: str) -> tuple[int, int]:
+    rpm, rpd = GEMINI_LIMITS.get(model, CONSERVATIVE_LIMIT)
+    return (RPM_OVERRIDE or rpm), rpd
+
+
+def quota_report() -> dict[str, dict[str, int]]:
+    """Live calls made per model this process, against the daily ceiling.
+
+    In-process only: it does not know what an earlier run spent today. It is a
+    guard against burning a whole day's budget inside one run, not an accountant.
+    """
+    return {m: {"calls": n, "daily_limit": limits_for(m)[1]}
+            for m, n in sorted(_calls_today.items())}
+
+
+def _throttle(model: str) -> None:
+    """Space out live API calls for `model` to stay under its per-minute quota.
 
     Cache hits never reach here, so a fully-cached replay runs at full speed.
     """
-    global _last_call_at
-    if RPM_LIMIT <= 0:
-        return
-    min_gap = 60.0 / RPM_LIMIT
+    rpm, rpd = limits_for(model)
     with _rate_lock:
-        wait = min_gap - (time.monotonic() - _last_call_at)
-        if wait > 0:
-            time.sleep(wait)
-        _last_call_at = time.monotonic()
+        if _calls_today.get(model, 0) >= rpd:
+            raise DailyQuotaExhausted(
+                f"{model} has served {rpd} live calls in this process, its documented "
+                f"free-tier daily ceiling. Further calls would only collect 429s.\n"
+                f"  Use a model with a larger budget (GROUNDSCORE_GEMINI_JUDGE="
+                f"gemma-4-31b-it is 14400/day), run the role on Ollama, or wait for "
+                f"the quota to roll over."
+            )
+        if rpm > 0:
+            min_gap = 60.0 / (rpm * RPM_HEADROOM)
+            wait = min_gap - (time.monotonic() - _last_call_at.get(model, 0.0))
+            if wait > 0:
+                time.sleep(wait)
+        _last_call_at[model] = time.monotonic()
+        _calls_today[model] = _calls_today.get(model, 0) + 1
 
 
 def _call_gemini(
@@ -384,11 +431,19 @@ def _call_gemini(
     if schema is not None:
         config["response_mime_type"] = "application/json"
         config["response_schema"] = schema
+        if model.startswith("gemma") and not system:
+            # Reproducible on gemma-4-31b-it: `response_schema` without a
+            # `system_instruction` returns 500 INTERNAL on every attempt, and
+            # returns valid JSON as soon as any system instruction is present.
+            # Injected here rather than at the call sites so the cache key stays
+            # the system prompt the CALLER wrote -- the same logical call must
+            # hash identically whichever model happens to serve it.
+            config["system_instruction"] = "Respond with JSON matching the given schema."
 
     last_exc: Exception | None = None
     for attempt in range(max_retries):
         try:
-            _throttle()
+            _throttle(model)
             resp = _get_client().models.generate_content(
                 model=model, contents=prompt, config=config
             )
@@ -403,8 +458,9 @@ def _call_gemini(
             last_exc = exc
             if attempt == max_retries - 1:
                 break
-            # 429 (quota) and 503 (model overloaded) both need a long, growing
-            # pause; anything else is likely permanent but cheap to retry once.
+            # 429 (quota) and 503 (model overloaded -- gemma-4-31b-it returns
+            # this routinely) both need a long, growing pause; anything else is
+            # likely permanent but cheap to retry once.
             message = str(exc)
             slow = "429" in message or "503" in message or "RESOURCE_EXHAUSTED" in message
             time.sleep((15.0 if slow else 2.0) * (2 ** attempt))
@@ -412,104 +468,11 @@ def _call_gemini(
     raise RuntimeError(f"Gemini call failed after {max_retries} attempts: {last_exc}") from last_exc
 
 
-def _strict_schema(schema: Any) -> Any:
-    """Add `additionalProperties: false` to every object node.
-
-    Anthropic's structured outputs reject an object schema without it. Done
-    here rather than in the schema literals so the cache key stays the schema
-    the caller wrote -- the same prompt must hash identically whichever backend
-    happens to serve it.
-    """
-    if isinstance(schema, dict):
-        out = {k: _strict_schema(v) for k, v in schema.items()}
-        if out.get("type") == "object":
-            out.setdefault("additionalProperties", False)
-        return out
-    if isinstance(schema, list):
-        return [_strict_schema(v) for v in schema]
-    return schema
-
-
-_anthropic_client = None
-
-
-def _get_anthropic_client():
-    global _anthropic_client
-    if _anthropic_client is None:
-        import anthropic  # lazy: offline replay must not need the SDK
-
-        # The SDK already retries 408/409/429/5xx with exponential backoff, so
-        # the outer loop below only handles what it does not: empty output and
-        # policy refusals.
-        _anthropic_client = anthropic.Anthropic(
-            api_key=os.environ.get("ANTHROPIC_API_KEY") or None, max_retries=5)
-    return _anthropic_client
-
-
-def _call_anthropic(
-    model: str,
-    prompt: str,
-    schema: Any,
-    temperature: float,
-    system: str | None,
-    max_retries: int = 3,
-) -> str:
-    import anthropic
-
-    kwargs: dict[str, Any] = {
-        "model": model,
-        "max_tokens": int(os.environ.get("GROUNDSCORE_MAX_TOKENS", "2048")),
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    if system:
-        kwargs["system"] = system
-
-    output_config: dict[str, Any] = {}
-    if schema is not None:
-        output_config["format"] = {"type": "json_schema", "schema": _strict_schema(schema)}
-    if model not in ANTHROPIC_ACCEPTS_TEMPERATURE:
-        # Sampling params are rejected on this generation; effort is the knob
-        # that replaced them. Haiku is the inverse -- it takes temperature and
-        # rejects effort -- so exactly one of the two is ever sent.
-        output_config["effort"] = os.environ.get("GROUNDSCORE_ANTHROPIC_EFFORT", "low")
-    else:
-        kwargs["temperature"] = temperature
-    if output_config:
-        kwargs["output_config"] = output_config
-
-    last_exc: Exception | None = None
-    for attempt in range(max_retries):
-        try:
-            resp = _get_anthropic_client().messages.create(**kwargs)
-            if resp.stop_reason == "refusal":
-                category = getattr(resp.stop_details, "category", None)
-                raise ValueError(f"refused by safety classifier (category={category})")
-            text = "".join(b.text for b in resp.content if b.type == "text").strip()
-            if not text:
-                raise ValueError(f"empty response (stop_reason={resp.stop_reason})")
-            return text
-        except anthropic.BadRequestError:
-            # A malformed request will fail identically on every retry, and
-            # retrying it 3x across 1000 rows just burns money and wall clock.
-            STATS.errors += 1
-            raise
-        except (anthropic.APIStatusError, anthropic.APIConnectionError, ValueError) as exc:
-            last_exc = exc
-            if attempt == max_retries - 1:
-                break
-            time.sleep(2.0 * (2 ** attempt))
-    STATS.errors += 1
-    raise RuntimeError(
-        f"Anthropic call failed after {max_retries} attempts: {last_exc}") from last_exc
-
-
 def _dispatch(prov: str, model: str, prompt: str, schema: Any,
               temperature: float, system: str | None) -> str:
     if prov == "ollama":
         return providers.generate(model, prompt, system=system, schema=schema,
                                   temperature=temperature)
-    if prov == "anthropic":
-        return _call_anthropic(model, prompt, schema, temperature, system)
     return _call_gemini(model, prompt, schema, temperature, system)
 
 
