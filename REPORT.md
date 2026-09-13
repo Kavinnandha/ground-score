@@ -76,7 +76,7 @@ So "good" here is:
 | Agent | retrieve(k=5) → classify → draft(≤280 chars, cites precedent) → route |
 | Routing | Deterministic rules first; LLM judges only what survives them |
 | Evaluation | Bootstrap CIs, coverage-vs-harm curve, LLM judge validated against blind human scores |
-| Models | `claude-haiku-4-5` classifies + drafts, `claude-opus-5` judges, `nomic-embed-text` embeds from the committed cache |
+| Models | `qwen3:4b` (local) classifies + drafts, `gemini-3.1-flash-lite` judges, `nomic-embed-text` embeds from the committed cache |
 
 Full rationale for each choice is in [`DECISIONS.md`](DECISIONS.md).
 
@@ -199,9 +199,9 @@ operating point they define is more fragile than a single reported coverage
 number implies.
 
 **10. The drafter is a small, cheap model, so absolute quality is not the architecture's ceiling.**
-Reply quality reflects `claude-haiku-4-5`, chosen because it is what a
-high-volume triage route would actually run, not the best reply this pipeline
-could produce. Comparisons *between* systems here are fair, because every system
+Reply quality reflects `qwen3:4b` running locally, chosen because ~1000 calls
+per full run exceed every free hosted budget available here, not because it is
+the best reply this pipeline could produce. Comparisons *between* systems here are fair, because every system
 uses the same generator; the absolute reply scores are not a statement about the
 design. Swapping in a stronger drafter would move reply quality and should be
 expected to — it would not validate the routing, which is where the value is.

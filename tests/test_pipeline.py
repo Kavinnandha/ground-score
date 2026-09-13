@@ -25,6 +25,7 @@ from groundscore.classify import Classification  # noqa: E402
 from groundscore.draft import Draft  # noqa: E402
 from groundscore.ingest import read_jsonl  # noqa: E402
 from groundscore import route  # noqa: E402
+from groundscore import providers  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -311,12 +312,25 @@ def test_judge_role_defaults_to_a_different_vendor_than_the_drafter(monkeypatch)
     A model grading its own output cannot rule out self-preference, so the
     judge role has its own provider chain rather than inheriting the global one.
     """
-    monkeypatch.setenv("GROUNDSCORE_PROVIDER", "anthropic")
+    monkeypatch.setenv("GROUNDSCORE_PROVIDER", "ollama")
     monkeypatch.delenv("GROUNDSCORE_ROLE_JUDGE", raising=False)
     monkeypatch.delenv("GROUNDSCORE_ROLE_FAST", raising=False)
-    assert llm.role_chain("fast")[0] == "anthropic"
+    assert llm.role_chain("fast")[0] == "ollama"
     assert llm.role_chain("judge")[0] == "gemini"
     assert llm.role_chain("judge")[0] != llm.role_chain("fast")[0]
+
+
+def test_judge_and_drafter_are_different_models_on_one_provider(monkeypatch):
+    """Putting BOTH roles on Gemini must not collapse them onto one model.
+
+    The chain guarantees different vendors only while the fallback holds. If a
+    reviewer moves drafting to Gemini too, the judge has to stay a different
+    model or the self-preference probe is comparing a model against itself.
+    """
+    assert llm.model_for("gemini", "judge") != llm.model_for("gemini", "fast")
+    # The cross probe is the opposite requirement: it must BE the drafter.
+    assert llm.model_for("gemini", "cross") == llm.model_for("gemini", "fast")
+    assert llm.model_for("ollama", "cross") == llm.model_for("ollama", "fast")
 
 
 def test_role_chain_rejects_an_unknown_provider(monkeypatch):
@@ -363,3 +377,47 @@ def test_provider_switch_is_recorded_not_silent(monkeypatch):
     assert llm.complete("p", model=llm.MODEL_JUDGE) == "ok"
     assert llm.SERVING["judge"].startswith("ollama:")
     assert any("RESOURCE_EXHAUSTED" in e["reason"] for e in llm.PROVIDER_EVENTS)
+
+
+# --------------------------------------------------------------------------
+# Free-tier quota handling
+# --------------------------------------------------------------------------
+
+def test_hosted_roles_are_paced_per_model_not_globally(monkeypatch):
+    """Free-tier RPM differs 3x between the ids this project uses.
+
+    One global rate would either throttle flash-lite to a third of its
+    allowance or drive flash straight into 429s.
+    """
+    monkeypatch.setattr(llm, "RPM_OVERRIDE", 0)
+    assert llm.limits_for("gemini-3.1-flash-lite")[0] == 15
+    assert llm.limits_for("gemini-3.5-flash")[0] == 5
+    # An unknown id must not be assumed generous.
+    assert llm.limits_for("gemini-99-experimental") == llm.CONSERVATIVE_LIMIT
+
+
+def test_daily_quota_is_refused_locally_rather_than_by_the_server(monkeypatch):
+    """The per-day cap is the binding free-tier constraint, and 429s are slow.
+
+    Letting the server enforce it costs a full retry ladder per row for the
+    rest of the run; refusing locally lets the chain fall through immediately.
+    """
+    monkeypatch.setattr(llm, "_calls_today", {})
+    monkeypatch.setattr(llm, "_last_call_at", {})
+    monkeypatch.setattr(llm, "GEMINI_LIMITS", {"tiny-model": (600, 2)})
+    llm._throttle("tiny-model")
+    llm._throttle("tiny-model")
+    with pytest.raises(llm.DailyQuotaExhausted, match="daily ceiling"):
+        llm._throttle("tiny-model")
+
+
+def test_only_ollama_and_gemini_are_known_providers(monkeypatch):
+    """Anthropic was removed; a stale chain naming it must fail loudly.
+
+    Silently ignoring an unknown provider would let a run that asked for a
+    specific judge quietly be served by a different one.
+    """
+    assert providers.KNOWN_PROVIDERS == ("ollama", "gemini")
+    monkeypatch.setenv("GROUNDSCORE_ROLE_JUDGE", "anthropic,ollama")
+    with pytest.raises(Exception, match="unknown provider"):
+        llm.role_chain("judge")

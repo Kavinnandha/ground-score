@@ -9,7 +9,7 @@ help:
 	@echo "make reproduce   regenerate headline results from committed caches (NO API key needed)"
 	@echo "make test        run the test suite"
 	@echo ""
-	@echo "Full rebuild (needs ANTHROPIC_API_KEY; ~1000 live calls):"
+	@echo "Full rebuild (needs Ollama running, plus GEMINI_API_KEY for the judge):"
 	@echo "  make full        data -> corpus -> embeddings -> intents"
 	@echo "  make golden      sample 150 candidates with weak labels"
 	@echo "  make label       adjudicate them by hand    (interactive)"

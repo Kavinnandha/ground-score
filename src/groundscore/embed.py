@@ -189,16 +189,6 @@ def embed_model(texts: list[str], *, model: str = llm.MODEL_EMBED, dim: int = EM
     missing_idx = [i for i, k in enumerate(keys) if cache.get(k) is None]
     if missing_idx:
         missing = f"{len(missing_idx)} of {len(texts)} texts are not in the embedding cache"
-        if llm.provider() == "anthropic":
-            # Anthropic serves no embeddings. Falling back to another backend
-            # here would silently mix two vector spaces in one index, so this
-            # is fatal by design.
-            raise llm.OfflineCacheMiss(
-                f"{missing}, and the Anthropic backend has no embeddings endpoint.\n"
-                "  Embeddings come from the committed nomic-embed-text cache, which covers\n"
-                "  the whole corpus and golden set. A miss means an input changed: rebuild\n"
-                "  with GROUNDSCORE_PROVIDER=ollama 'make embeddings', or use backend='tfidf'."
-            )
         if llm.provider() == "ollama":
             if not providers.available():
                 raise llm.OfflineCacheMiss(

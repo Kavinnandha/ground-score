@@ -38,13 +38,13 @@ list of providers rather than inheriting a single global backend:
 
 | Role | Default chain | Model | Why |
 |---|---|---|---|
-| classify + draft (`@fast`) | `$GROUNDSCORE_PROVIDER` → `ollama` | `claude-haiku-4-5` when that is `anthropic` | the cheap, fast model a high-volume triage route would actually run |
-| judge (`@judge`) | `gemini` → `ollama` | `gemini-3.7-flash` → `gemma3:4b` | **a different vendor from the drafter**, so reply scores are not one family grading itself |
+| classify + draft (`@fast`) | `$GROUNDSCORE_PROVIDER` → `ollama` | `qwen3:4b` locally, `gemini-3.5-flash-lite` when hosted | the high-volume role: ~1000 calls per full run, which no free hosted tier covers |
+| judge (`@judge`) | `gemini` → `ollama` | `gemini-3.1-flash-lite` → `gemma3:4b` | **a different vendor and family from the drafter**, so reply scores are not one lineage grading itself |
 | self-preference probe (`@cross`) | same as `@fast` | the drafter's own model | the gap against the headline judge bounds self-preference |
-| embeddings | `ollama` only | `nomic-embed-text` | the only backend here with an embeddings endpoint; served entirely from the committed cache |
+| embeddings | `ollama` only | `nomic-embed-text` | keyless, no quota, and the committed vectors are keyed to this tag |
 
-`GROUNDSCORE_PROVIDER` still defaults to `ollama`, so set it (or
-`GROUNDSCORE_ROLE_FAST`) to put drafting on a hosted model. Only `@judge` has a
+Two providers exist: `ollama` and `gemini`. `GROUNDSCORE_PROVIDER` defaults to
+`ollama`, so drafting is local and only judging is hosted. Only `@judge` has a
 default chain of its own — deliberately, so cross-vendor judging survives
 someone changing the global provider.
 
@@ -52,24 +52,38 @@ Override any chain with a comma-separated list, preference first:
 
 ```bash
 GROUNDSCORE_ROLE_JUDGE=ollama,gemini   # judge locally, fall back to hosted
-GROUNDSCORE_ROLE_FAST=ollama           # draft locally too
-GROUNDSCORE_PROVIDER=anthropic         # default head for roles without a chain
+GROUNDSCORE_ROLE_FAST=gemini,ollama    # draft on a hosted model (paid key advised)
+GROUNDSCORE_PROVIDER=gemini            # default head for roles without a chain
 ```
 
 **Fallback never silently mixes two judges into one number.** A role is pinned
-to whichever provider first serves it. If that provider dies mid-run (Gemini's
-free tier is metered at *20 calls per day per model* — see `DECISIONS.md` #22),
-the switch prints a warning, is recorded in `results/eval_*.json` under
+to whichever provider first serves it. If that provider dies mid-run (the free
+Gemini tier meters requests per day per model — see the table below and
+`DECISIONS.md` #22), the switch prints a warning, is recorded in `results/eval_*.json` under
 `providers.switches`, and **every judged row is tagged with the model that
 actually scored it** (`judge_model`). A split scored by two models is visible
 rather than averaged away. Replay checks every provider in the chain, so
 reordering it does not invalidate the committed cache.
 
-**Practical note on the free Gemini tier:** 20 calls/day/model against ~450
-judge calls means the Gemini judge will exhaust and fall through to Ollama
-almost immediately. Either run the judge on a machine with Ollama and a GPU, or
-set `GROUNDSCORE_ROLE_JUDGE=ollama` up front so one model scores the whole
-split.
+**Model ids were picked on the free tier's daily budget, not on capability.**
+The ceiling that matters is requests-per-day-per-model, and it varies by 700x
+across the ids this key can reach:
+
+| Model | RPM | RPD | Verdict |
+|---|---:|---:|---|
+| `gemini-3.x-flash` | 5 | 20 | unusable — a judged split is ~450 calls |
+| `gemini-3.x-flash-lite` | 15 | 500 | **the default for both hosted roles**; covers one split per day |
+| `gemma-4-31b-it` | 30 | 14,400 | escape hatch only: it returns 503 under ordinary load, and 500 on `response_schema` unless a system instruction is sent with it (both handled, but a judge that intermittently 503s cannot carry a headline number) |
+
+Live calls are paced **per model** from that table, not by one global rate, and
+the daily count is enforced in-process: hitting it raises `DailyQuotaExhausted`
+so the chain falls through to Ollama immediately, rather than collecting a retry
+ladder of 429s on every remaining row. What each model actually served is
+written into `results/eval_*.json` under `providers.live_calls`.
+
+If the 500/day budget is not enough for the day's work, set
+`GROUNDSCORE_ROLE_JUDGE=ollama` up front so one model scores the whole split —
+that is honest, where a mid-split fallback is merely visible.
 
 Embeddings never touch a hosted API. The embedding cache is keyed on
 `(model, dim, text)` rather than on provider, so the committed
@@ -195,10 +209,14 @@ run otherwise.
 
 ## Full rebuild from raw data
 
-Needs a key for whichever chains you use (`ANTHROPIC_API_KEY`,
-`GEMINI_API_KEY`) and/or Ollama running. Only `make embeddings` requires Ollama
-specifically — no hosted backend here serves embeddings — and it is the one step
-you should not need to rerun, since its cache is committed.
+Needs Ollama running (drafting, embeddings) and `GEMINI_API_KEY` set (the
+judge). `make embeddings` is the one step you should not need to rerun, since
+its cache is committed.
+
+Local models run on the GPU: a 4B model at q4 fits a 6GB card with room for the
+8K context, which is what makes local drafting a backend rather than a
+bottleneck. On integrated graphics the same models take 60–90s per call and a
+full run is an overnight job — see `DECISIONS.md` #28.
 
 ```bash
 make full            # download -> corpus -> embeddings -> intent clusters
