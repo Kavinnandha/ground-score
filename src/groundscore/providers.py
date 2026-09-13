@@ -1,7 +1,25 @@
-"""Model backends: local Ollama (default) and Gemini.
+"""Model backends: local Ollama, hosted Anthropic, hosted Gemini.
 
-Why local is the default
-------------------------
+This module holds the Ollama transport; the hosted paths live in `llm.py`
+alongside the cache that fronts all three.
+
+How a backend is chosen
+-----------------------
+Not globally. Each ROLE has its own ordered provider chain (see llm.role_chain):
+the drafter heads at `anthropic`, the judge heads at `gemini`, embeddings are
+`ollama` only. The judge must not share the drafter's lineage, and making that a
+property of the role rather than of the run means it holds by default instead of
+by remembering to set an env var. DECISIONS.md #32.
+
+The local-only plan below was correct about quota and wrong about hardware: it
+assumed a discrete GPU, and on an Intel iGPU a 4B model runs ~60-90s per call
+against a ~1000-call evaluation.
+
+Replay is still keyless: the response cache is committed and `make reproduce`
+runs with keys stripped. Only *regenerating* results needs a key.
+
+Why local was the default
+-------------------------
 The Gemini free tier meters `generate_content` at **20 requests per day, per
 model** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, confirmed from the
 429 body). A full evaluation of this project needs roughly a thousand calls.
@@ -147,6 +165,18 @@ def embed(model: str, texts: list[str], *, timeout: int = DEFAULT_TIMEOUT) -> li
     return vectors
 
 
+KNOWN_PROVIDERS = ("ollama", "anthropic", "gemini")
+
+
 def provider_name() -> str:
-    """'ollama' unless explicitly overridden to 'gemini'."""
-    return os.environ.get("GROUNDSCORE_PROVIDER", "ollama").strip().lower()
+    """Active backend: 'ollama' (default), 'anthropic', or 'gemini'.
+
+    An unrecognised value is rejected rather than defaulted. A typo used to
+    fall through to the hosted branch, which meant a run could quietly use a
+    different model than the one named in the results it wrote.
+    """
+    name = os.environ.get("GROUNDSCORE_PROVIDER", "ollama").strip().lower()
+    if name not in KNOWN_PROVIDERS:
+        raise ProviderError(
+            f"GROUNDSCORE_PROVIDER={name!r} is not one of {', '.join(KNOWN_PROVIDERS)}")
+    return name

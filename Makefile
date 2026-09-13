@@ -2,20 +2,22 @@ PY ?= python
 export PYTHONPATH := src:$(PYTHONPATH)
 
 .PHONY: help setup reproduce full test clean data corpus embeddings intents golden label \
-        relabel tune eval eval-test judge-human judge-agreement report-inputs
+        relabel tune replies eval eval-test judge-human judge-agreement report-inputs
 
 help:
 	@echo "make setup       install dependencies"
 	@echo "make reproduce   regenerate headline results from committed caches (NO API key needed)"
 	@echo "make test        run the test suite"
 	@echo ""
-	@echo "Full rebuild (needs GEMINI_API_KEY, several hours of rate-limited calls):"
+	@echo "Full rebuild (needs ANTHROPIC_API_KEY; ~1000 live calls):"
 	@echo "  make full        data -> corpus -> embeddings -> intents"
-	@echo "  make golden      sample 200 candidates with weak labels"
+	@echo "  make golden      sample 150 candidates with weak labels"
 	@echo "  make label       adjudicate them by hand    (interactive)"
+	@echo "  make relabel     blind re-label of 50, for intra-annotator kappa"
 	@echo "  make tune        fit routing thresholds on dev"
-	@echo "  make eval        score every system on dev"
-	@echo "  make judge-human blind-score replies         (interactive)"
+	@echo "  make replies     generate dev replies, WITHOUT judging them"
+	@echo "  make judge-human blind-score those replies    (interactive, must precede eval)"
+	@echo "  make eval        score every system on dev, judge included"
 	@echo "  make judge-agreement   judge-vs-human validation"
 	@echo "  make eval-test   score the test split ONCE"
 
@@ -60,6 +62,16 @@ relabel:
 
 tune:
 	$(PY) eval/tune_thresholds.py
+
+# Replies WITHOUT the judge. This target exists because of an ordering
+# constraint: human reply scores have to be collected before the judge has
+# produced an opinion of the same replies, or the human is anchored and the
+# agreement number is worthless. `make eval` judges, so it cannot come first --
+# but the replies must exist before a human can score them. Hence: replies ->
+# judge-human -> eval. tools/score_replies_cli.py enforces this and will refuse
+# to run in the wrong order.
+replies:
+	$(PY) eval/run_eval.py --split dev --no-judge
 
 eval:
 	$(PY) eval/run_eval.py --split dev

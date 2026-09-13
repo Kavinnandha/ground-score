@@ -17,6 +17,12 @@ pip install -r requirements.txt
 make reproduce
 ```
 
+No `make` (e.g. a stock Windows shell)? The target is a one-line wrapper:
+
+```bash
+pip install -r requirements.txt && python scripts/reproduce.py
+```
+
 `make reproduce` regenerates every table in `results/` from artifacts committed
 to this repository: the 10k-thread corpus subsample, the embedding cache, and
 the model response cache. It runs with API keys **stripped from the
@@ -24,31 +30,57 @@ environment**, so any step that is not fully cached fails loudly rather than
 silently making live calls and producing numbers that differ from the published
 ones. Cache misses must be zero; the script reports them.
 
-### Models
+### Models: one chain per role, not one provider per run
 
-Everything runs on **local models via [Ollama](https://ollama.com)** — no API
-key, no quota, no network:
+**The drafter and the judge must not share a lineage.** A model grading its own
+output cannot rule out self-preference, so each *role* carries its own ordered
+list of providers rather than inheriting a single global backend:
 
-| Role | Model | Why |
-|---|---|---|
-| classify + draft | `qwen3:4b` | fits a 6GB GPU, follows a JSON schema |
-| judge | `gemma3:4b` | **different family from the drafter**, so reply scores are not a model grading itself |
-| embeddings | `nomic-embed-text` | 768-dim, ~330 texts/min locally |
+| Role | Default chain | Model | Why |
+|---|---|---|---|
+| classify + draft (`@fast`) | `$GROUNDSCORE_PROVIDER` → `ollama` | `claude-haiku-4-5` when that is `anthropic` | the cheap, fast model a high-volume triage route would actually run |
+| judge (`@judge`) | `gemini` → `ollama` | `gemini-3.7-flash` → `gemma3:4b` | **a different vendor from the drafter**, so reply scores are not one family grading itself |
+| self-preference probe (`@cross`) | same as `@fast` | the drafter's own model | the gap against the headline judge bounds self-preference |
+| embeddings | `ollama` only | `nomic-embed-text` | the only backend here with an embeddings endpoint; served entirely from the committed cache |
 
-This was not the original plan. The Gemini free tier turned out to be capped at
-**20 `generate_content` calls per day, per model**
-(`GenerateRequestsPerDayPerProjectPerModel-FreeTier`), against a workload of
-roughly a thousand — so the hosted API could not run this evaluation at all.
-Going local removed the ceiling and, as a side effect, made the judge a
-genuinely independent model family and the whole pipeline reproducible without
-credentials. The cost is capability: a 4B model is weaker than a hosted frontier
-model, and the report attributes reply-quality limits to that rather than to the
-architecture. Gemini remains supported via `GROUNDSCORE_PROVIDER=gemini`.
+`GROUNDSCORE_PROVIDER` still defaults to `ollama`, so set it (or
+`GROUNDSCORE_ROLE_FAST`) to put drafting on a hosted model. Only `@judge` has a
+default chain of its own — deliberately, so cross-vendor judging survives
+someone changing the global provider.
+
+Override any chain with a comma-separated list, preference first:
+
+```bash
+GROUNDSCORE_ROLE_JUDGE=ollama,gemini   # judge locally, fall back to hosted
+GROUNDSCORE_ROLE_FAST=ollama           # draft locally too
+GROUNDSCORE_PROVIDER=anthropic         # default head for roles without a chain
+```
+
+**Fallback never silently mixes two judges into one number.** A role is pinned
+to whichever provider first serves it. If that provider dies mid-run (Gemini's
+free tier is metered at *20 calls per day per model* — see `DECISIONS.md` #22),
+the switch prints a warning, is recorded in `results/eval_*.json` under
+`providers.switches`, and **every judged row is tagged with the model that
+actually scored it** (`judge_model`). A split scored by two models is visible
+rather than averaged away. Replay checks every provider in the chain, so
+reordering it does not invalidate the committed cache.
+
+**Practical note on the free Gemini tier:** 20 calls/day/model against ~450
+judge calls means the Gemini judge will exhaust and fall through to Ollama
+almost immediately. Either run the judge on a machine with Ollama and a GPU, or
+set `GROUNDSCORE_ROLE_JUDGE=ollama` up front so one model scores the whole
+split.
+
+Embeddings never touch a hosted API. The embedding cache is keyed on
+`(model, dim, text)` rather than on provider, so the committed
+`nomic-embed-text` vectors stay valid whatever generation runs on; every corpus
+and golden-set text is already in it, and a miss is fatal rather than silently
+re-embedded into a different vector space.
 
 Only needed to *regenerate* results:
 
 ```bash
-ollama pull qwen3:4b && ollama pull gemma3:4b && ollama pull nomic-embed-text
+pip install -r requirements.txt   # then set keys in .env for the chains you use
 ```
 
 ```bash
@@ -92,7 +124,7 @@ auto-reply is permanent. So the harness reports:
 - and the **coverage vs. false-auto curve** over the confidence threshold,
   so the operating point is visible rather than implied.
 
-Every headline number carries a bootstrap 95% CI. With ~90 test examples those
+Every headline number carries a bootstrap 95% CI. With 80 test examples those
 intervals are wide, and the report says so instead of quoting three decimals.
 
 **Reply quality** is scored by an LLM judge against `eval/judge_rubric.md`
@@ -116,8 +148,12 @@ The third baseline is an **ablation**, not a requirement of the brief. Trivial
 and simple answer "is this dataset easy?"; only the ablation answers "does the
 grounding actually do anything?".
 
-Baselines are fitted on the **dev** split only — never on the split being
-scored.
+Baselines are fitted on the **dev** split only. When the split being scored *is*
+dev, the learned baselines are predicted **out-of-fold** (5-fold) instead of
+being handed their own training rows — in-sample, `simple_tfidf_nn` returns
+1.000 intent accuracy by memorisation, which would make the agent look hopeless
+against a lookup table. Out-of-fold it scores what it can actually generalise
+to. The test split is unaffected (fitted on dev, scored on test).
 
 ---
 
@@ -146,10 +182,11 @@ label was written.
   full point high
 - **verbosity probe**: identical replies re-judged with filler appended; any
   score movement is length bias
-- **self-preference probe**: drafter and judge are already different families
-  (`qwen3:4b` vs `gemma3:4b`), so this is a check rather than a correction —
-  it re-scores a subset with the drafter's own model to confirm the gap that
-  a same-family judge would have introduced
+- **self-preference probe**: a subset is re-scored with the drafter's own
+  model and the gap against the headline judge is reported, along with
+  `same_vendor_as_drafter`. When the judge chain has fallen back onto the
+  drafter's own vendor that flag flips true and the gap becomes a **discount to
+  apply** to the reply-quality headline rather than a sanity check
 
 Human scores are collected *before* judge output is read; the CLI refuses to
 run otherwise.
@@ -158,9 +195,10 @@ run otherwise.
 
 ## Full rebuild from raw data
 
-Needs Ollama running with the three models above. The embedding step takes
-~30 minutes for 10k messages; the evaluation is bounded by local generation
-speed rather than by any quota.
+Needs a key for whichever chains you use (`ANTHROPIC_API_KEY`,
+`GEMINI_API_KEY`) and/or Ollama running. Only `make embeddings` requires Ollama
+specifically — no hosted backend here serves embeddings — and it is the one step
+you should not need to rerun, since its cache is committed.
 
 ```bash
 make full            # download -> corpus -> embeddings -> intent clusters
@@ -169,11 +207,22 @@ make golden          # sample 150 candidates with weak labels
 make label           # adjudicate by hand (interactive)
 make relabel         # blind re-label of 50, for intra-annotator kappa
 make tune            # fit routing thresholds on dev
-make eval            # score all systems on dev
+
+make replies         # generate dev replies, WITHOUT judging them
 make judge-human     # blind human reply scoring (interactive)
+make eval            # score all systems on dev, judge included
 make judge-agreement
 make eval-test       # score the test split ONCE
 ```
+
+**The order of those middle three is load-bearing, not stylistic.** Human reply
+scores have to be recorded before the judge has produced an opinion of the same
+replies — otherwise the "human" is anchored to the judge and the agreement
+statistic measures nothing. But replies have to exist before anyone can score
+them. So: `replies` (generate, don't judge) → `judge-human` (blind) → `eval`
+(judge). `tools/score_replies_cli.py` refuses to run once judge scores exist for
+the split, so getting this wrong fails loudly rather than quietly producing a
+flattering κ.
 
 The Kaggle dataset downloads without credentials (verified 2026-09);
 `scripts/download_data.py` falls back to token auth and then to manual

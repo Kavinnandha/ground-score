@@ -22,7 +22,7 @@ and the report states that limitation plainly.
 Keys
 ----
   Enter    accept the proposed label
-  1-9,0    pick an intent by number
+  1-N      pick an intent by number (or type a unique prefix of its name)
   a / e    set action to auto / escalate
   ?        show the full labelling guideline
   n        show the brand's actual historical reply
@@ -104,8 +104,7 @@ def render_item(item: dict, index: int, total: int, intents: list[str], hide_wea
 
     table = Table(show_header=False, box=None, padding=(0, 2))
     for i, name in enumerate(intents, start=1):
-        key = str(i) if i < 10 else "0"
-        table.add_row(f"[cyan]{key}[/]", name)
+        table.add_row(f"[cyan]{i}[/]", name)
     console.print(table)
 
 
@@ -131,12 +130,21 @@ def prompt_intent(item: dict, intents: list[str], hide_weak: bool) -> str | None
         if raw == "s":
             return "__skip__"
         if raw.isdigit():
-            idx = 10 if raw == "0" else int(raw)
+            idx = int(raw)
             if 1 <= idx <= len(intents):
                 return intents[idx - 1]
+            console.print(f"[red]out of range — pick 1-{len(intents)}[/]")
+            continue
         if raw in intents:
             return raw
-        console.print("[red]unrecognised — number, intent name, ? , n, s, or q[/]")
+        # Unique prefix, so the long class names need not be typed in full.
+        matches = [n for n in intents if n.startswith(raw)]
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            console.print(f"[red]ambiguous — matches {', '.join(matches)}[/]")
+            continue
+        console.print(f"[red]unrecognised — 1-{len(intents)}, intent name, ? , n, s, or q[/]")
 
 
 def prompt_action() -> str:

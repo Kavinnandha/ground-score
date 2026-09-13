@@ -76,7 +76,7 @@ So "good" here is:
 | Agent | retrieve(k=5) → classify → draft(≤280 chars, cites precedent) → route |
 | Routing | Deterministic rules first; LLM judges only what survives them |
 | Evaluation | Bootstrap CIs, coverage-vs-harm curve, LLM judge validated against blind human scores |
-| Models | `qwen3:4b` drafts, `gemma3:4b` judges, `nomic-embed-text` embeds — all local via Ollama |
+| Models | `claude-haiku-4-5` classifies + drafts, `claude-opus-5` judges, `nomic-embed-text` embeds from the committed cache |
 
 Full rationale for each choice is in [`DECISIONS.md`](DECISIONS.md).
 
@@ -198,11 +198,13 @@ They will not transfer cleanly to a new period or a new brand, and the
 operating point they define is more fragile than a single reported coverage
 number implies.
 
-**10. The generator is a 4B local model, so absolute quality is not the architecture's ceiling.**
-Reply quality reflects `qwen3:4b` running on a 6GB GPU, not what this pipeline
-would do with a frontier model. Comparisons *between* systems here are fair,
-because every system uses the same generator; the absolute reply scores are not
-a statement about the design.
+**10. The drafter is a small, cheap model, so absolute quality is not the architecture's ceiling.**
+Reply quality reflects `claude-haiku-4-5`, chosen because it is what a
+high-volume triage route would actually run, not the best reply this pipeline
+could produce. Comparisons *between* systems here are fair, because every system
+uses the same generator; the absolute reply scores are not a statement about the
+design. Swapping in a stronger drafter would move reply quality and should be
+expected to — it would not validate the routing, which is where the value is.
 
 **10b. The confidence score is not calibrated.**
 Routing partly depends on a self-reported LLM confidence, which is known to

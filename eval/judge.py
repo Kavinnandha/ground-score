@@ -196,9 +196,15 @@ def judge_outputs(
         )
         scored.append({
             "thread_id": out["thread_id"],
+            # Which model actually produced this score. The judge role has a
+            # provider fallback chain, so a quota failure part-way through a
+            # split can mean two different judges scored one table. Recorded
+            # per row so that is visible instead of silently averaged.
+            # None means no model was consulted (empty reply, scored by rule).
+            "judge_model": (None if score is EMPTY_REPLY_SCORE
+                            else llm.SERVING.get("judge", model)),
             "system": out.get("diagnostics", {}).get("system", "unknown"),
             "reply": out.get("reply", ""),
-            "judge_model": model,
             **score.as_dict(),
         })
         if on_progress:

@@ -20,12 +20,15 @@ evaluation would be blind to exactly the classes it is worst at.
 | `rare` | 25% (38) | inverse-frequency over clusters | keeps macro-F1 on tail classes from being estimated off 2–3 examples |
 | `adversarial` | 15% (22) | heuristic hard-case selection | the cases where auto-reply actually hurts |
 
-**On the size: 150, not 200.** The brief allows 150–250. The Gemini free tier on
-this key meters `generate_content` at roughly 5 requests/minute (measured, not
-quoted from docs), which puts the full evaluation at several hours of wall
-clock. 150 was chosen to keep the whole pipeline runnable end-to-end rather than
-to make any number look better. The cost is entirely in statistical power, and
-it is reported: the test split is 90 examples, so confidence intervals are wide
+**On the size: 150, not 200.** The brief allows 150–250. The binding constraint
+is annotation, not compute: every example is adjudicated by hand by a single
+annotator, and 150 is what can be labelled carefully in one sitting without the
+fatigue drift that makes the last fifty worse than the first fifty. (The size
+was fixed earlier, under a since-abandoned rate-limited backend; the reasoning
+that keeps it at 150 now is annotator attention.) 150 was chosen to keep the
+whole pipeline runnable end-to-end rather than to make any number look better.
+The cost is entirely in statistical power, and
+it is reported: the test split is 80 examples, so confidence intervals are wide
 and small differences between systems are not resolvable.
 
 Adversarial selection is by **surface heuristics, not model difficulty**: very
