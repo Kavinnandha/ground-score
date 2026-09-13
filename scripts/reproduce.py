@@ -58,7 +58,7 @@ def main() -> int:
 
     # Hide the key so an incomplete cache cannot be papered over by live calls.
     env = dict(os.environ)
-    for var in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    for var in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"):
         env.pop(var, None)
     env["GROUNDSCORE_OFFLINE"] = "1"
     env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")

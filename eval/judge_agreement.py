@@ -126,21 +126,30 @@ def cross_family_probe(judged: list[dict], outputs_by_id: dict, limit: int = 25)
                             source.get("exemplars", []), model=llm.MODEL_JUDGE_CROSS)
         rows.append({
             "thread_id": row["thread_id"],
-            "gemini_mean": row["mean_score"],
-            "gemma_mean": other.mean_score,
+            "judge_mean": row["mean_score"],
+            "cross_mean": other.mean_score,
             "delta": round(row["mean_score"] - other.mean_score, 3),
         })
     if not rows:
         return {"n": 0}
+    judge_model = llm.SERVING.get("judge", llm.MODEL_JUDGE)
+    cross_model = llm.SERVING.get("cross", llm.MODEL_JUDGE_CROSS)
+    same_vendor = judge_model.split(":")[0] == cross_model.split(":")[0]
     return {
         "n": len(rows),
-        "judge_model": llm.MODEL_JUDGE,
-        "cross_model": llm.MODEL_JUDGE_CROSS,
+        "judge_model": judge_model,
+        "cross_model": cross_model,
+        # Whether the probe is a correction or a sanity check depends entirely
+        # on this. Same vendor: the headline judge shares the drafter's lineage
+        # and the delta is a discount to apply. Different vendors: the delta is
+        # a check that no such discount is needed.
+        "same_vendor_as_drafter": same_vendor,
         "mean_delta": round(sum(r["delta"] for r in rows) / len(rows), 3),
         "interpretation": (
-            "positive mean_delta = the same-family judge scores these replies higher "
-            "than an outside family does; that gap is an upper bound on self-preference "
-            "inflation in the headline reply score"),
+            "positive mean_delta = the headline judge scores these replies higher than "
+            "the drafter's own model does. When same_vendor_as_drafter is true, treat "
+            "that gap as an upper bound on self-preference inflation in the headline "
+            "reply score; when false, it is a cross-vendor sanity check instead"),
         "examples": rows[:10],
     }
 

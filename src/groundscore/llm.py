@@ -38,7 +38,10 @@ from typing import Any
 from . import providers
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CACHE_PATH = REPO_ROOT / "cache" / "llm_cache.sqlite"
+# Overridable so a smoke run against a stub backend cannot write fabricated
+# responses into the committed cache that backs the published numbers.
+CACHE_PATH = Path(os.environ.get(
+    "GROUNDSCORE_CACHE_PATH", REPO_ROOT / "cache" / "llm_cache.sqlite"))
 
 # Gemini ids, used only when GROUNDSCORE_PROVIDER=gemini. Probed 2026-09 on the
 # free tier: every *-pro model returns 429 (no pro quota), gemini-3.8-flash
@@ -50,30 +53,145 @@ GEMINI_JUDGE = "gemini-3.7-flash"
 GEMINI_JUDGE_CROSS = "gemma-4-31b-it"
 GEMINI_EMBED = "gemini-embedding-001"
 
+# Anthropic ids, used when GROUNDSCORE_PROVIDER=anthropic.
+#
+# The drafter is deliberately the cheap, fast model: a support triage route is
+# high-volume and latency-sensitive, so Haiku is what this system would actually
+# run in production, and evaluating a model nobody would deploy proves nothing.
+#
+# The judge is deliberately STRONGER than the drafter. On the local backend the
+# judge was a different family (gemma judging qwen); on one Anthropic key that
+# separation is impossible, so it is replaced with a capability gap in the safe
+# direction -- a strong model grading a weaker one. The residual same-vendor
+# risk is not waved away: MODEL_JUDGE_CROSS re-scores with the drafter's own
+# model, so self-preference is measured rather than assumed absent. See
+# DECISIONS.md #5 and the report's limitations section.
+ANTHROPIC_FAST = os.environ.get("GROUNDSCORE_ANTHROPIC_FAST", "claude-haiku-4-5")
+ANTHROPIC_JUDGE = os.environ.get("GROUNDSCORE_ANTHROPIC_JUDGE", "claude-opus-5")
+
+# Anthropic has no embeddings endpoint. The embedding cache is keyed on
+# (model, dim, text) and NOT on provider, so the committed nomic-embed-text
+# vectors stay valid while generation runs on a hosted API. Every corpus and
+# golden-set text is already in that cache; a miss raises rather than silently
+# switching backends and changing what "similar" means mid-evaluation.
+ANTHROPIC_EMBED = providers.OLLAMA_EMBED
+
+# Sampling parameters were removed on the 4.6+ generation: sending temperature
+# to Opus 5 or Sonnet 5 is a 400, not a warning. Only the models that still
+# accept it get it, which is why temperature cannot carry reproducibility here
+# -- the cache does.
+ANTHROPIC_ACCEPTS_TEMPERATURE = ("claude-haiku-4-5",)
+
 
 def provider() -> str:
+    """The default provider. Roles may override it -- see `role_chain`."""
     return providers.provider_name()
 
 
-def _resolve(role: str) -> str:
-    """Model id for a role under the active provider.
+# Roles are addressed by token, not by a model id frozen at import. The drafter
+# and the judge are separate roles precisely so they can sit on different
+# vendors: a model grading its own output cannot rule out self-preference.
+MODEL_FAST = "@fast"
+MODEL_JUDGE = "@judge"
+MODEL_JUDGE_CROSS = "@cross"
 
-    Roles rather than hard-coded ids, because the drafter/judge/cross-judge
-    split has to hold on both backends: the judge must never be the same model
-    as the drafter, or the reply scores measure a model grading itself.
-    """
-    if provider() == "gemini":
-        return {"fast": GEMINI_FAST, "judge": GEMINI_JUDGE,
-                "cross": GEMINI_JUDGE_CROSS, "embed": GEMINI_EMBED}[role]
-    return {"fast": providers.OLLAMA_FAST, "judge": providers.OLLAMA_JUDGE,
-            "cross": providers.OLLAMA_FAST, "embed": providers.OLLAMA_EMBED}[role]
+# NOT a role token. embed._text_key() hashes this string into every embedding
+# cache key, so it must stay the literal model name or the committed vectors
+# become unreachable.
+MODEL_EMBED = providers.OLLAMA_EMBED
+
+_ROLE_MODELS = {
+    "anthropic": {"fast": ANTHROPIC_FAST, "judge": ANTHROPIC_JUDGE, "cross": ANTHROPIC_FAST},
+    "gemini": {"fast": GEMINI_FAST, "judge": GEMINI_JUDGE, "cross": GEMINI_JUDGE_CROSS},
+    "ollama": {"fast": providers.OLLAMA_FAST, "judge": providers.OLLAMA_JUDGE,
+               "cross": providers.OLLAMA_FAST},
+}
+
+# The judge defaults to a DIFFERENT vendor from the drafter, with a local
+# fallback. That is the whole point of a per-role chain: it buys back the
+# cross-family independence that a single hosted key cannot provide.
+# Override with e.g. GROUNDSCORE_ROLE_JUDGE=ollama,gemini
+DEFAULT_ROLE_CHAINS = {"judge": ("gemini", "ollama")}
 
 
-# Resolved once at import so a single run cannot silently mix backends.
-MODEL_FAST = _resolve("fast")
-MODEL_JUDGE = _resolve("judge")
-MODEL_JUDGE_CROSS = _resolve("cross")
-MODEL_EMBED = _resolve("embed")
+def model_for(prov: str, role: str) -> str:
+    try:
+        return _ROLE_MODELS[prov][role]
+    except KeyError:
+        raise KeyError(f"no model for role {role!r} on provider {prov!r}") from None
+
+
+def _dedupe(names) -> tuple[str, ...]:
+    seen, out = set(), []
+    for n in names:
+        if n and n not in seen:
+            seen.add(n)
+            out.append(n)
+    return tuple(out)
+
+
+def role_chain(role: str) -> tuple[str, ...]:
+    """Ordered providers to try for `role`, most preferred first."""
+    env = os.environ.get(f"GROUNDSCORE_ROLE_{role.upper()}")
+    if env:
+        chain = _dedupe(p.strip().lower() for p in env.split(","))
+    elif role in DEFAULT_ROLE_CHAINS:
+        chain = DEFAULT_ROLE_CHAINS[role]
+    else:
+        chain = _dedupe((provider(), "ollama"))
+    for name in chain:
+        if name not in providers.KNOWN_PROVIDERS:
+            raise providers.ProviderError(
+                f"role chain for {role!r} names unknown provider {name!r}; "
+                f"valid: {', '.join(providers.KNOWN_PROVIDERS)}")
+    return chain
+
+
+def _why_unusable(prov: str) -> str:
+    if prov == "ollama":
+        return f"not reachable at {providers.OLLAMA_HOST}"
+    return f"no API key ({'ANTHROPIC_API_KEY' if prov == 'anthropic' else 'GEMINI_API_KEY'} unset)"
+
+
+def usable(prov: str) -> bool:
+    """Whether `prov` could serve a live call right now."""
+    if prov == "ollama":
+        return providers.available()
+    if prov == "anthropic":
+        return bool(os.environ.get("ANTHROPIC_API_KEY")
+                    or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+    return bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+
+
+# Which provider actually served each role this run, and every forced switch.
+# Written into the results so a reader can tell whether one split was scored by
+# one judge or by two -- a mixed split cannot be pooled into a single number.
+_pinned: dict[str, str] = {}
+SERVING: dict[str, str] = {}
+PROVIDER_EVENTS: list[dict[str, Any]] = []
+
+
+def _note_serving(role: str, prov: str, concrete: str, problems: list[str]) -> None:
+    previous = _pinned.get(role)
+    if previous == prov:
+        return
+    _pinned[role] = prov
+    SERVING[role] = f"{prov}:{concrete}"
+    event = {"role": role, "provider": prov, "model": concrete,
+             "previous": previous, "reason": problems[-1] if problems else "first use"}
+    PROVIDER_EVENTS.append(event)
+    if previous is not None:
+        print(f"\n  !! role {role!r} switched provider {previous} -> {prov}\n"
+              f"     reason: {event['reason']}\n"
+              f"     This split is now scored by TWO different models. Results are\n"
+              f"     tagged per row; do not pool them into one number.\n", flush=True)
+
+
+def provider_report() -> dict[str, Any]:
+    """Serving providers and any mid-run switches, for the results files."""
+    return {"serving": dict(SERVING), "switches":
+            [e for e in PROVIDER_EVENTS if e["previous"] is not None],
+            "chains": {r: role_chain(r) for r in ("fast", "judge", "cross")}}
 
 DEFAULT_TEMPERATURE = 0.0
 
@@ -183,7 +301,22 @@ load_dotenv()
 
 
 def api_key() -> str | None:
-    key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    """Credential for the active provider, or None.
+
+    Provider-aware on purpose: with a single global lookup, running the
+    Anthropic backend with only a stale Gemini key exported would report
+    "have key", sail past the offline guard, and fail deep inside a 1000-call
+    evaluation instead of at startup.
+    """
+    if provider() == "anthropic":
+        # AUTH_TOKEN counts as a credential but is not an api_key -- the SDK
+        # sends it on a different header, so only API_KEY is passed explicitly
+        # to the client constructor (see _get_anthropic_client).
+        key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    elif provider() == "ollama":
+        return None  # local backend needs no credential; see offline()
+    else:
+        key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     return key.strip() if key and key.strip() else None
 
 
@@ -279,6 +412,107 @@ def _call_gemini(
     raise RuntimeError(f"Gemini call failed after {max_retries} attempts: {last_exc}") from last_exc
 
 
+def _strict_schema(schema: Any) -> Any:
+    """Add `additionalProperties: false` to every object node.
+
+    Anthropic's structured outputs reject an object schema without it. Done
+    here rather than in the schema literals so the cache key stays the schema
+    the caller wrote -- the same prompt must hash identically whichever backend
+    happens to serve it.
+    """
+    if isinstance(schema, dict):
+        out = {k: _strict_schema(v) for k, v in schema.items()}
+        if out.get("type") == "object":
+            out.setdefault("additionalProperties", False)
+        return out
+    if isinstance(schema, list):
+        return [_strict_schema(v) for v in schema]
+    return schema
+
+
+_anthropic_client = None
+
+
+def _get_anthropic_client():
+    global _anthropic_client
+    if _anthropic_client is None:
+        import anthropic  # lazy: offline replay must not need the SDK
+
+        # The SDK already retries 408/409/429/5xx with exponential backoff, so
+        # the outer loop below only handles what it does not: empty output and
+        # policy refusals.
+        _anthropic_client = anthropic.Anthropic(
+            api_key=os.environ.get("ANTHROPIC_API_KEY") or None, max_retries=5)
+    return _anthropic_client
+
+
+def _call_anthropic(
+    model: str,
+    prompt: str,
+    schema: Any,
+    temperature: float,
+    system: str | None,
+    max_retries: int = 3,
+) -> str:
+    import anthropic
+
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "max_tokens": int(os.environ.get("GROUNDSCORE_MAX_TOKENS", "2048")),
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if system:
+        kwargs["system"] = system
+
+    output_config: dict[str, Any] = {}
+    if schema is not None:
+        output_config["format"] = {"type": "json_schema", "schema": _strict_schema(schema)}
+    if model not in ANTHROPIC_ACCEPTS_TEMPERATURE:
+        # Sampling params are rejected on this generation; effort is the knob
+        # that replaced them. Haiku is the inverse -- it takes temperature and
+        # rejects effort -- so exactly one of the two is ever sent.
+        output_config["effort"] = os.environ.get("GROUNDSCORE_ANTHROPIC_EFFORT", "low")
+    else:
+        kwargs["temperature"] = temperature
+    if output_config:
+        kwargs["output_config"] = output_config
+
+    last_exc: Exception | None = None
+    for attempt in range(max_retries):
+        try:
+            resp = _get_anthropic_client().messages.create(**kwargs)
+            if resp.stop_reason == "refusal":
+                category = getattr(resp.stop_details, "category", None)
+                raise ValueError(f"refused by safety classifier (category={category})")
+            text = "".join(b.text for b in resp.content if b.type == "text").strip()
+            if not text:
+                raise ValueError(f"empty response (stop_reason={resp.stop_reason})")
+            return text
+        except anthropic.BadRequestError:
+            # A malformed request will fail identically on every retry, and
+            # retrying it 3x across 1000 rows just burns money and wall clock.
+            STATS.errors += 1
+            raise
+        except (anthropic.APIStatusError, anthropic.APIConnectionError, ValueError) as exc:
+            last_exc = exc
+            if attempt == max_retries - 1:
+                break
+            time.sleep(2.0 * (2 ** attempt))
+    STATS.errors += 1
+    raise RuntimeError(
+        f"Anthropic call failed after {max_retries} attempts: {last_exc}") from last_exc
+
+
+def _dispatch(prov: str, model: str, prompt: str, schema: Any,
+              temperature: float, system: str | None) -> str:
+    if prov == "ollama":
+        return providers.generate(model, prompt, system=system, schema=schema,
+                                  temperature=temperature)
+    if prov == "anthropic":
+        return _call_anthropic(model, prompt, schema, temperature, system)
+    return _call_gemini(model, prompt, schema, temperature, system)
+
+
 def complete(
     prompt: str,
     *,
@@ -289,50 +523,74 @@ def complete(
 ) -> str:
     """Return raw model text, served from cache when possible.
 
-    Raises OfflineCacheMiss if uncached and no API key is configured.
-    """
-    key = cache_key(model, prompt, schema, temperature, system)
-    cached = _cache_get(key)
-    if cached is not None:
-        STATS.hits += 1
-        return cached
+    `model` is either a concrete model id or a role token (`@judge`). A role is
+    resolved through its provider chain (see `role_chain`).
 
+    Replay checks EVERY provider in the chain before deciding it is a miss, so
+    a cache built when the judge ran on Gemini still replays after the chain is
+    reordered. Only a live call is subject to the chain's preference order.
+    """
+    role = model[1:] if model.startswith("@") else None
+    if role is None:
+        candidates = [(provider(), model)]
+    else:
+        candidates = [(p, model_for(p, role)) for p in role_chain(role)]
+
+    for prov, concrete in candidates:
+        cached = _cache_get(cache_key(concrete, prompt, schema, temperature, system, prov=prov))
+        if cached is not None:
+            STATS.hits += 1
+            if role:
+                # Provenance matters on replay too: a cached split that was
+                # judged by two providers must still report as mixed, or
+                # `make reproduce` would launder it into a single clean number.
+                _note_serving(role, prov, concrete, ["served from cache"])
+            return cached
+
+    shown = ", ".join(f"{p}:{m}" for p, m in candidates)
     if offline():
         raise OfflineCacheMiss(
             "Call not in cache and GROUNDSCORE_OFFLINE=1.\n"
-            f"  model={model} key={key[:12]}...\n"
+            f"  tried {shown}\n"
             "  This is a reproduction run: it must replay the committed cache exactly.\n"
             "  A miss means the committed cache does not cover this code path -- the\n"
             "  prompt, config or inputs changed. Regenerate with 'make full', or revert."
         )
 
-    if provider() == "ollama":
-        if not providers.available():
-            raise OfflineCacheMiss(
-                "Call not in cache and Ollama is not reachable at "
-                f"{providers.OLLAMA_HOST}.\n"
-                "  'make reproduce' must run entirely from the committed cache. Start the\n"
-                "  Ollama app and run 'make full' to regenerate, or revert your change."
-            )
+    # A role stays pinned to whichever provider first served it, so one split is
+    # not judged half by one model and half by another after a mid-run quota
+    # failure. A forced switch is recorded and surfaced, never silent.
+    order = candidates
+    if role and _pinned.get(role):
+        pin = _pinned[role]
+        order = ([c for c in candidates if c[0] == pin]
+                 + [c for c in candidates if c[0] != pin])
+
+    problems: list[str] = []
+    for prov, concrete in order:
+        if not usable(prov):
+            problems.append(f"{prov}: {_why_unusable(prov)}")
+            continue
+        try:
+            text = _dispatch(prov, concrete, prompt, schema, temperature, system)
+        except Exception as exc:  # noqa: BLE001 - classified by the chain
+            problems.append(f"{prov}: {type(exc).__name__}: {str(exc)[:160]}")
+            if role and prov != order[-1][0]:
+                continue  # fall through to the next provider in the chain
+            raise
+        if role:
+            _note_serving(role, prov, concrete, problems)
         STATS.misses += 1
-        text = providers.generate(model, prompt, system=system, schema=schema,
-                                  temperature=temperature)
-        _cache_put(key, model, prompt, text)
+        _cache_put(cache_key(concrete, prompt, schema, temperature, system, prov=prov),
+                   concrete, prompt, text)
         return text
 
-    if not have_key():
-        raise OfflineCacheMiss(
-            "LLM call not in cache and GEMINI_API_KEY is unset.\n"
-            f"  model={model} key={key[:12]}...\n"
-            "  'make reproduce' must run entirely from the committed cache. If you changed a\n"
-            "  prompt, config, or input, the cache key changed too -- set GEMINI_API_KEY and\n"
-            "  run 'make full' to regenerate, or revert the change."
-        )
-
-    STATS.misses += 1
-    text = _call_gemini(model, prompt, schema, temperature, system)
-    _cache_put(key, model, prompt, text)
-    return text
+    raise OfflineCacheMiss(
+        f"No provider in the chain for {model!r} could serve this call.\n"
+        + "".join(f"  {p}\n" for p in problems)
+        + "  Set a key for one of them, start Ollama, or run 'make reproduce' against\n"
+          "  the committed cache."
+    )
 
 
 def complete_json(

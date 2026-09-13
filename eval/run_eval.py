@@ -53,21 +53,71 @@ def load_golden(split: str | None = None) -> list[dict]:
     return rows
 
 
+# Baselines that LEARN from labels. They are fitted on dev, so scoring them on
+# dev is in-sample and meaningless -- a TF-IDF nearest-neighbour classifier
+# scores 1.00 against its own training set. Scored out-of-fold on dev instead;
+# see `out_of_fold_outputs`. The LLM systems are not fitted on anything, so they
+# are unaffected.
+FITTED_BASELINES = ("trivial_always_auto", "trivial_always_escalate", "simple_tfidf_nn")
+OOF_FOLDS = 5
+
+
+def _fit_baseline(name: str, messages: list[str], labels: list[str], retriever) -> object:
+    if name == "trivial_always_auto":
+        return TrivialBaseline.from_labels(labels)
+    if name == "trivial_always_escalate":
+        return TrivialBaseline.from_labels(labels, always_escalate=True)
+    if name == "simple_tfidf_nn":
+        return SimpleBaseline(retriever).fit(messages, labels)
+    raise KeyError(name)
+
+
 def build_systems(dev_rows: list[dict], *, with_llm: bool) -> dict:
-    """Baselines are fitted on DEV only -- never on the split being scored."""
+    """Fit every learned baseline on the dev split.
+
+    Correct when the split being scored is `test`. When scoring `dev` itself,
+    the caller must use `out_of_fold_outputs` for FITTED_BASELINES instead of
+    these objects, or the baseline is graded on its own training data.
+    """
     retriever = retrieve.load_retriever()
     dev_messages = [r["customer_msg"] for r in dev_rows]
     dev_labels = [r["intent"] for r in dev_rows]
 
     systems: dict[str, object] = {
-        "trivial_always_auto": TrivialBaseline.from_labels(dev_labels),
-        "trivial_always_escalate": TrivialBaseline.from_labels(dev_labels, always_escalate=True),
-        "simple_tfidf_nn": SimpleBaseline(retriever).fit(dev_messages, dev_labels),
+        name: _fit_baseline(name, dev_messages, dev_labels, retriever)
+        for name in FITTED_BASELINES
     }
     if with_llm:
         systems["agent_no_retrieval"] = SupportAgent(None, name="agent_no_retrieval")
         systems["agent"] = SupportAgent(retriever, name="agent")
     return systems
+
+
+def out_of_fold_outputs(name: str, rows: list[dict], retriever, *, k: int = 5,
+                        on_progress=None) -> list[dict]:
+    """Cross-validated predictions for a fitted baseline on its own fit split.
+
+    Each row is predicted by a copy of the baseline that never saw it. Folds are
+    assigned by position over rows already ordered by a stable thread-id hash,
+    so the partition is deterministic without importing another RNG.
+    """
+    outputs: list[dict] = []
+    done = 0
+    for fold in range(k):
+        train = [r for i, r in enumerate(rows) if i % k != fold]
+        held = [r for i, r in enumerate(rows) if i % k == fold]
+        if not held:
+            continue
+        if not train:
+            raise ValueError(f"fold {fold} has no training rows (k={k} too large)")
+        system = _fit_baseline(
+            name, [r["customer_msg"] for r in train], [r["intent"] for r in train], retriever)
+        items = [(r["thread_id"], r["customer_msg"]) for r in held]
+        outputs.extend(o.as_dict() for o in system.run(items))
+        done += len(held)
+        if on_progress:
+            on_progress(done, len(rows))
+    return outputs
 
 
 def score_system(rows: list[dict], outputs: list[dict]) -> dict:
@@ -163,8 +213,15 @@ def main() -> int:
     if not rows:
         print(f"No labelled rows in split '{args.split}'.")
         return 1
+    # Scoring the split the baselines were fitted on. Grading a learned model on
+    # its own training data is not a baseline, it is a memorisation check, so
+    # those systems are predicted out-of-fold instead.
+    in_sample = args.split == "dev"
     print(f"scoring {len(rows)} rows on split={args.split} "
           f"(baselines fitted on {len(dev_rows)} dev rows)")
+    if in_sample:
+        print(f"  fitted baselines ({', '.join(FITTED_BASELINES)}) scored "
+              f"out-of-fold, {OOF_FOLDS}-fold, because this IS their fit split")
 
     systems = build_systems(dev_rows, with_llm=not args.no_llm)
     items = [(r["thread_id"], r["customer_msg"]) for r in rows]
@@ -177,7 +234,11 @@ def main() -> int:
             if i % 20 == 0 or i == total:
                 print(f"   {i}/{total}", flush=True)
 
-        outputs = [o.as_dict() for o in system.run(items, on_progress=progress)]
+        if in_sample and name in FITTED_BASELINES:
+            outputs = out_of_fold_outputs(
+                name, rows, retrieve.load_retriever(), k=OOF_FOLDS, on_progress=progress)
+        else:
+            outputs = [o.as_dict() for o in system.run(items, on_progress=progress)]
         write_outputs_path = config.RESULTS_DIR / f"outputs_{args.split}_{name}.jsonl"
         write_outputs_path.parent.mkdir(parents=True, exist_ok=True)
         with write_outputs_path.open("w", encoding="utf-8") as fh:
@@ -226,6 +287,7 @@ def main() -> int:
     config.RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     (config.RESULTS_DIR / f"eval_{args.split}.json").write_text(
         json.dumps({"split": args.split, "results": all_results,
+                    "providers": llm.provider_report(),
                     "cache": llm.cache_stats()}, indent=2), encoding="utf-8")
     table = markdown_table(all_results)
     (config.RESULTS_DIR / f"eval_{args.split}.md").write_text(table + "\n", encoding="utf-8")
@@ -233,7 +295,7 @@ def main() -> int:
 
     if args.split == "test":
         record = {"timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"), "n": len(rows),
-                  "systems": list(systems)}
+                  "systems": list(systems), "providers": llm.provider_report()}
         with (config.RESULTS_DIR / "test_runs.jsonl").open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(record) + "\n")
         print("\nlogged a test-split run to results/test_runs.jsonl")

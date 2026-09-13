@@ -50,14 +50,26 @@ embeddings API, or pure-sklearn TF-IDF+SVD. Both are implemented and
 selectable. Which one actually ships is decided in **#22** — by quota, not
 preference.
 
-**5. The judge is a different model family from the drafter, by construction.**
-The original plan was flash drafts / pro judge; the key had no pro quota, and
-then the daily cap (#22) moved everything local anyway. The end state is better
-than the plan: drafter `qwen3:4b`, judge `gemma3:4b` — different families,
-different training data, different weights. A model grading its own output
-cannot rule out self-preference; two unrelated families largely removes it
-rather than merely measuring it. The cross-family probe in
-`eval/judge_agreement.py` is retained as a check that this held.
+**5. The judge must never be the same model as the drafter — and on the final backend that guarantee weakened.**
+The requirement is constant: a model grading its own output cannot rule out
+self-preference. How well it is met changed twice. Plan one was flash drafts /
+pro judge (no pro quota). Plan two went local and met it best: drafter
+`qwen3:4b`, judge `gemma3:4b` — different families, different weights, so
+self-preference was largely removed by construction rather than measured.
+Plan three (#28) put the drafter on a hosted Anthropic key. Briefly the judge
+went there too, which *lost* the property: one vendor grading its own family,
+with only a capability gap (`claude-opus-5` judging `claude-haiku-4-5`) standing
+in for independence. That was a regression, so it was not kept.
+
+The shipped design restores independence structurally by making the provider a
+property of the **role** rather than of the run (#32): the drafter chain heads
+at `anthropic`, the judge chain heads at `gemini`. Different vendors, different
+training data — self-preference is again largely removed by construction rather
+than merely bounded. The probe in `eval/judge_agreement.py` now reports
+`same_vendor_as_drafter`, so a reader can tell which regime produced any given
+number: false means the delta is a cross-vendor sanity check, true means the
+judge has fallen back onto the drafter's vendor and the delta is a **discount to
+apply** to the reply-quality headline.
 
 **6. Evaluation threads are excluded from the retrieval index by construction.**
 Split assignment is a stable SHA-256 bucket of the thread id, computed at
@@ -210,7 +222,7 @@ rationalise its own label.
 **24. The golden set is 150, not 200.**
 The brief allows 150–250. At ~5 RPM the full design ran to roughly 8 hours of
 API time. 150 keeps the whole pipeline runnable end to end. The cost is
-statistical power only — the test split is 90 examples, so the confidence
+statistical power only — the test split is 80 examples, so the confidence
 intervals are wide and small between-system differences are not resolvable. That
 is stated in the report rather than papered over, and it was chosen before any
 result was seen, not after.
@@ -255,6 +267,102 @@ it to articulate what separates each cluster. Without this the taxonomy would
 have discarded most of the structure the clustering actually found, and the
 classification task would have looked far easier than it is.
 
+**28. The shipped backend is a hosted Anthropic key, reversing #22 — because the hardware the local plan assumed did not exist.**
+Decision #22 moved everything local to escape the Gemini daily cap, and that
+was right at the time. It assumed a discrete GPU ("fits a 6GB GPU"). The machine
+this was finished on has Intel integrated graphics and 8 CPU cores, where a 4B
+model runs at roughly 60–90s per call against a ~1000-call evaluation: 12–24
+hours per full run, and every prompt change costs another overnight. That is not
+a backend, it is a bottleneck, and it would have forced the evaluation to shrink
+to fit — exactly the pressure this project is supposed to resist.
+
+So generation moved to `GROUNDSCORE_PROVIDER=anthropic`: `claude-haiku-4-5`
+classifies and drafts, `claude-opus-5` judges. What this costs, stated plainly:
+
+  * **Keyless reproduction is gone for *regeneration*.** It survives for
+    *replay*: the response cache is still committed and `make reproduce` still
+    runs with keys stripped and `GROUNDSCORE_OFFLINE=1`. A reviewer reproduces
+    the published numbers with no key; only changing a prompt needs one.
+  * **The independent-family judge is gone** (see #5), replaced by a measured
+    correction rather than a structural guarantee.
+  * **Model deprecation can invalidate regeneration later** in a way local model
+    tags would not have.
+
+What it buys is the ability to run the evaluation at all on this hardware,
+several times, including the bias probes and the ablation — and a drafter that
+is a realistic production choice for a high-volume triage route rather than a
+4B model chosen because it fit in RAM.
+
+Embeddings did **not** move: Anthropic serves none. The embedding cache is keyed
+on `(model, dim, text)` and not on provider, so the committed `nomic-embed-text`
+vectors remain valid and every corpus and golden text is already in them. A miss
+raises rather than silently re-embedding into a second vector space, which would
+have quietly changed what "similar" means half way through an index.
+
+**29. `temperature` is not sent to the models that reject it.**
+Sampling parameters were removed on the current Anthropic generation:
+`temperature=0.0` to `claude-opus-5` is a 400, not a warning. The adapter sends
+temperature only to models that still accept it and sends `effort` to the rest.
+The pipeline pins temperature 0.0 everywhere it can, but this is a reminder that
+temperature never carried reproducibility here — the committed cache does, which
+is why that was built first.
+
+**30. The learned baselines are scored out-of-fold on dev, because the obvious way to score them was in-sample.**
+`build_systems()` fits the baselines on dev. Scoring `--split dev` then handed
+`simple_tfidf_nn` its own training rows, and it returned **1.000 intent
+accuracy** — not a strong baseline, a memorisation check. Out-of-fold (5-fold)
+it scores **0.386** on the same rows. The gap is the whole point: the in-sample
+version would have made the agent look hopeless against a baseline that had
+simply looked up the answer, and the natural response to that table would have
+been to "fix" an agent that was not broken. The test split was never affected
+(fitted on dev, scored on test, which is correct), but dev is the table you
+iterate against, so a wrong number there steers every decision after it.
+`tests/test_pipeline.py::test_fitted_baselines_are_scored_out_of_fold_on_their_fit_split`
+asserts no fold predicts a row it trained on.
+
+**31. Human reply scoring is sequenced before the judge runs, and the tooling enforces it.**
+The documented order was `tune -> eval -> judge-human`, which cannot work:
+`make eval` runs the judge, and `tools/score_replies_cli.py` then refuses to
+start because scoring replies the judge has already graded is precisely the
+anchoring the validation exists to rule out. But replies must exist before a
+human can score them, so "just score first" is not available either. Resolved
+with a `make replies` target that generates dev replies with `--no-judge`, so
+the real order is **replies -> judge-human -> eval -> judge-agreement**. The
+guard was already correct; the documentation was wrong, which is the more
+dangerous of the two failure modes, because a guard that fires is noticed and a
+wrong runbook is followed.
+
+**32. The provider is a property of the role, not of the run — with an ordered fallback chain per role.**
+`GROUNDSCORE_PROVIDER` was global: one backend served drafting, judging and the
+self-preference probe. That makes the single most important property of the
+judge — that it does not share the drafter's lineage — an accident of which key
+happened to be set. Roles now carry their own chains (`GROUNDSCORE_ROLE_JUDGE`,
+default `gemini,ollama`, against a drafter defaulting to `anthropic`), so
+cross-vendor judging is the default rather than something to remember.
+
+The chain also solves the quota problem #22 ran into, without pretending it does
+not exist. Three properties make the fallback safe to trust:
+
+  * **Replay tries every provider in the chain before declaring a miss.** A
+    cache built when the judge ran on Gemini still replays after the chain is
+    reordered, so `make reproduce` does not start demanding live calls for
+    numbers that are already published.
+  * **A role is pinned to whichever provider first serves it.** Without pinning,
+    a chain would flap back to the preferred provider on every call and a split
+    would end up scored by two models in an interleaved pattern nobody could
+    reconstruct.
+  * **A forced switch is loud and recorded.** It warns on stderr, lands in
+    `results/eval_*.json` under `providers.switches`, and every judged row is
+    tagged with the model that actually scored it. A split scored by two judges
+    is then *visible* rather than averaged into one number — which is the only
+    honest option, because those rows cannot be pooled.
+
+The remaining exposure is stated rather than engineered away: on Gemini's free
+tier (20 calls/day/model) the judge will exhaust almost immediately against ~450
+judge calls, so in practice the judge must either run locally on a GPU box or on
+a paid tier. The chain makes that a visible operational fact instead of a silent
+change of judge half way down the table.
+
 ---
 
 ## Borrowed / cited
@@ -263,7 +371,8 @@ classification task would have looked far easier than it is.
   (Kaggle, `thoughtvector`), used under its Kaggle licence.
 - `scikit-learn` for TF-IDF, KMeans, silhouette, logistic regression, and the
   classification metrics; `scipy` for Spearman.
-- `google-genai` SDK for Gemini access.
+- `anthropic` Python SDK for the shipped hosted backend; `google-genai` SDK for
+  the Gemini path; Ollama's HTTP API (no SDK) for the local path.
 - Percentile bootstrap and quadratic-weighted κ are standard methods; the
   implementations here are written against `sklearn`/`numpy` primitives rather
   than copied.
