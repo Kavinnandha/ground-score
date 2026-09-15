@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ground-score report</title>
+<style>
+  @page { size: A4; margin: 17mm 16mm 16mm 16mm; }
+  html { font-size: 10.4pt; }
+  body {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    color: #000; background: #fff;
+    line-height: 1.34; margin: 0;
+    text-align: left;
+  }
+  h1 { font-size: 14pt; margin: 0 0 2pt; font-weight: bold; }
+  .byline { font-size: 9.5pt; margin: 0 0 2pt; }
+  .repo { font-size: 9pt; margin: 0 0 10pt; font-family: "Consolas", monospace; }
+  hr.rule { border: 0; border-top: 0.6pt solid #000; margin: 0 0 10pt; }
+  h2 {
+    font-size: 11pt; font-weight: bold; margin: 12pt 0 4pt;
+    page-break-after: avoid; break-after: avoid;
+  }
+  h3 {
+    font-size: 10.4pt; font-weight: bold; font-style: italic;
+    margin: 9pt 0 3pt; page-break-after: avoid; break-after: avoid;
+  }
+  p { margin: 0 0 6pt; }
+  ul, ol { margin: 0 0 6pt; padding-left: 16pt; }
+  li { margin: 0 0 3pt; }
+  table {
+    border-collapse: collapse; width: 100%; font-size: 8.6pt;
+    margin: 4pt 0 8pt; page-break-inside: avoid; break-inside: avoid;
+  }
+  th, td { border: 0; padding: 2.2pt 4pt; text-align: left; vertical-align: top; }
+  thead th { border-bottom: 0.6pt solid #000; font-weight: bold; }
+  tbody tr td { border-bottom: 0.3pt solid #999; }
+  tbody tr:last-child td { border-bottom: 0.6pt solid #000; }
+  td.num, th.num { text-align: right; }
+  .pending {
+    font-size: 9.6pt; border-left: 1.5pt solid #000; padding: 3pt 0 3pt 7pt;
+    margin: 4pt 0 6pt;
+  }
+  .note { font-size: 9.2pt; margin: 0 0 8pt; }
+  code { font-family: "Consolas", monospace; font-size: 9pt; }
+  .keep { page-break-inside: avoid; break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<h1>ground-score: an AI support agent for @AmazonHelp, and how much to trust it</h1>
+<p class="byline">Kavin Nandha &middot; Hiver SDE intern take-home &middot; 15 September 2026</p>
+<p class="repo">github.com/kavinnandha/ground-score &middot; full decision log in DECISIONS.md</p>
+<hr class="rule">
+
+<p class="note"><b>On the numbers.</b> Every figure here is produced into <code>results/</code>
+by the code in the repo. Section 3.1 is complete: it needs no hand labels, so it has run. The
+baseline table (3.2) and the full failure ranking (4) are pending because the golden set is
+sampled but not yet adjudicated. The framing, method and limitations sections do not depend on
+that run.</p>
+
+<h2>1. Problem framing</h2>
+
+<h3>What "good" means for this brand</h3>
+
+<p>@AmazonHelp is a public, high-volume, logistics-heavy support queue. Three things about it
+shape what a useful agent looks like.</p>
+
+<p>Most inbound is a status question, not a problem to solve. "Where is my parcel", "it says
+delivered and it isn't here", "I was charged twice". The brand's own reply is usually a short
+apology plus one instruction or link. An agent that produces exactly that isn't being lazy,
+it's matching the job.</p>
+
+<p>The brand rarely hides behind DMs, but it does hand off. 10.8% of first replies send the
+customer somewhere else (0.8% to DMs, 9.9% to a contact page). That's low enough that "draft a
+grounded reply" is a real task here, unlike Uber_Support at 75%, but high enough that a system
+which learns to imitate this brand will learn to hand off about one time in ten.</p>
+
+<p>The expensive mistake is public and permanent. A needless escalation costs an agent thirty
+seconds. A wrong auto-reply is a public tweet from a brand account, and the cases where it goes
+wrong (fraud, a damaged item, someone who has already been let down twice) are exactly the cases
+where the customer is least able to absorb it.</p>
+
+<p>So "good" here means:</p>
+<ol>
+  <li>Correct routing matters far more than correct replies. The value of the system is in
+  knowing what it shouldn't answer.</li>
+  <li>Grounded beats fluent. A vague-but-true reply is better than a confident invented one, and
+  the rubric enforces that: fabricated specifics score below honest hedging.</li>
+  <li>Auditable. A support lead has to be able to ask "why did this escalate?" and get a rule
+  name back, not a vibe.</li>
+  <li>Coverage is the business case, harm rate is the constraint. So the headline is an
+  operating point, <i>X% auto-handled at &le;Y% false-auto</i>, not an accuracy figure.</li>
+</ol>
+
+<h3>What I deliberately didn't build</h3>
+<ul>
+  <li><b>Multi-turn dialogue.</b> The agent acts on the first customer message only. Later turns
+  are kept for context, and for measuring whether the brand's answer ended the conversation, but
+  conversational state is out of scope.</li>
+  <li><b>Live tool use.</b> No order lookup, no account access. This is the biggest cap on the
+  ceiling here: a large share of these tickets simply can't be answered without account data,
+  and no amount of prompt work fixes that. Recognising those and escalating them is the correct
+  behaviour, and it's what the system does.</li>
+  <li><b>PII redaction.</b> PII is detected and used as an escalation trigger. It isn't scrubbed
+  or stored.</li>
+  <li><b>Fine-tuning.</b> Retrieval plus a taxonomy gets most of the value for a fraction of the
+  complexity, and it stays inspectable.</li>
+  <li><b>Multilingual support.</b> Non-English traffic is filtered out of the corpus. It exists
+  in the queue; this system doesn't serve it.</li>
+  <li><b>Serving.</b> No API, no queue consumer, no latency budget. The deliverable is an
+  evaluated system, not a deployed one.</li>
+</ul>
+
+<h2>2. Method</h2>
+
+<table>
+<thead><tr><th style="width:21%">Stage</th><th>Approach</th></tr></thead>
+<tbody>
+<tr><td>Brand choice</td><td>Profiled 7 candidate brands on handoff rate, reply substance, intent diversity, multi-turn rate (<code>results/brand_profile.md</code>)</td></tr>
+<tr><td>Corpus</td><td>8,496 threads kept from an 11,000-thread sample (957 unusable, 1,530 non-English, 17 near-duplicates dropped), stable-hash split into 7,998 retrieval history / 498 evaluation pool</td></tr>
+<tr><td>Taxonomy</td><td>Cluster &rarr; LLM names each cluster &rarr; human merges into <code>taxonomy/intents.yaml</code>, which is both the classifier prompt and the annotator guideline</td></tr>
+<tr><td>Golden set</td><td>150 adjudicated examples in 3 strata (60% traffic-proportional, 25% rare-intent, 15% hard cases), scored separately, dev 70 / test 80 by stable hash</td></tr>
+<tr><td>Agent</td><td>retrieve(k=5) &rarr; classify &rarr; draft (&le;280 chars, cites the precedent it used) &rarr; route</td></tr>
+<tr><td>Routing</td><td>Deterministic rules first, LLM only judges what survives them; every escalation carries the rule that caused it</td></tr>
+<tr><td>Evaluation</td><td>Bootstrap CIs, coverage-vs-harm curve, LLM judge validated against blind human scores</td></tr>
+<tr><td>Models</td><td><code>qwen3:4b</code> (local) classifies and drafts, <code>gemini-3.5-flash-lite</code> judges, <code>nomic-embed-text</code> embeds from the committed cache</td></tr>
+</tbody>
+</table>
+
+<h3>The brand decision, and a correction</h3>
+
+<table class="keep">
+<thead><tr>
+<th>brand</th><th class="num">threads</th><th class="num">dm&nbsp;defl.</th><th class="num">link&nbsp;handoff</th>
+<th class="num">handoff</th><th class="num">substantive</th><th class="num">multi-turn</th><th class="num">lexical&nbsp;div.</th>
+</tr></thead>
+<tbody>
+<tr><td>hulu_support</td><td class="num">3976</td><td class="num">0.006</td><td class="num">0.052</td><td class="num">0.057</td><td class="num">0.927</td><td class="num">0.383</td><td class="num">0.124</td></tr>
+<tr><td><b>AmazonHelp</b></td><td class="num">3653</td><td class="num">0.008</td><td class="num">0.099</td><td class="num"><b>0.108</b></td><td class="num">0.716</td><td class="num">0.597</td><td class="num"><b>0.183</b></td></tr>
+<tr><td>SpotifyCares</td><td class="num">3937</td><td class="num">0.374</td><td class="num">0.003</td><td class="num">0.377</td><td class="num">0.555</td><td class="num">0.355</td><td class="num">0.135</td></tr>
+<tr><td>XboxSupport</td><td class="num">3921</td><td class="num">0.287</td><td class="num">0.002</td><td class="num">0.289</td><td class="num">0.547</td><td class="num">0.520</td><td class="num">0.119</td></tr>
+<tr><td>Delta</td><td class="num">3950</td><td class="num">0.200</td><td class="num">0.001</td><td class="num">0.201</td><td class="num">0.409</td><td class="num">0.354</td><td class="num">0.157</td></tr>
+<tr><td>AppleSupport</td><td class="num">3949</td><td class="num">0.536</td><td class="num">0.035</td><td class="num">0.551</td><td class="num">0.394</td><td class="num">0.350</td><td class="num">0.130</td></tr>
+<tr><td>Uber_Support</td><td class="num">3953</td><td class="num">0.648</td><td class="num">0.119</td><td class="num">0.750</td><td class="num">0.170</td><td class="num">0.357</td><td class="num">0.126</td></tr>
+</tbody>
+</table>
+
+<p>My guess going in was SpotifyCares. The data rejected it at 37.7% handoff.</p>
+
+<p>The first version of this table was wrong. It only measured DM-style deflection and put
+AmazonHelp at 0.008. Reading actual retrieved replies showed the real pattern: AmazonHelp almost
+never says "DM us", it says "please reach out to us here: &lt;URL&gt;". Counting both forms moved
+it to 0.108, a 13&times; undercount. The ranking survived, so the decision stands, but it stood on
+a number that was wrong until somebody checked it against raw text. A bare URL deliberately
+doesn't count as a handoff: roughly half of all replies contain one and most of those are
+genuinely useful, so the rule requires a contact verb as well.</p>
+
+<p>AmazonHelp over hulu_support is the one call here that is judgement rather than measurement.
+hulu wins on handoff rate and on substance, but its lexical diversity (0.124) and multi-turn rate
+(0.383) point at an intent space that collapses to about four classes, which would have made the
+classification result uninformative.</p>
+
+<h2>3. Results</h2>
+
+<p>Two parts. The baseline comparison needs the golden labels and is still pending. The
+reference comparison needs no labels at all, and it is the part that changed what I believe.</p>
+
+<h3>3.1 The brand's own reply, scored by the same judge</h3>
+
+<p>For all 70 dev rows I put @AmazonHelp's actual reply through the same blind judge, on the same
+message, against the same retrieved precedent as the agent's draft
+(<code>eval/reference_replies.py</code>). One model scored all 140 calls
+(<code>gemini-3.5-flash-lite</code>); <code>providers.switches</code> and
+<code>degraded_starts</code> are both empty, so this is one judge and not two averaged.</p>
+
+<table class="keep">
+<thead><tr><th>dimension</th><th class="num">agent</th><th class="num">brand's own reply</th><th class="num">delta</th><th>comparable?</th></tr></thead>
+<tbody>
+<tr><td>groundedness</td><td class="num">4.39</td><td class="num">3.64</td><td class="num">+0.74</td><td>no &mdash; see below</td></tr>
+<tr><td>resolution</td><td class="num">4.23</td><td class="num">3.53</td><td class="num">+0.70</td><td>yes</td></tr>
+<tr><td>tone fit</td><td class="num">4.76</td><td class="num">3.94</td><td class="num">+0.81</td><td>yes</td></tr>
+<tr><td>safety</td><td class="num">4.53</td><td class="num">3.90</td><td class="num">+0.63</td><td>yes</td></tr>
+<tr><td><b>comparable mean</b></td><td class="num"><b>4.50</b></td><td class="num"><b>3.79</b></td><td class="num"><b>+0.72</b></td><td></td></tr>
+<tr><td>would_send</td><td class="num">0.87</td><td class="num">0.54</td><td class="num">+0.33</td><td></td></tr>
+</tbody>
+</table>
+
+<p>Head to head on the comparable dimensions: agent better on 44 rows, human better on 13, tied
+on 13. Our <code>would_send</code> gate would have blocked <b>32 of the 70 replies this brand
+actually posted in public (46%)</b>.</p>
+
+<p>Read literally, a 4B model on my desktop writes better support replies than the people who
+answered these tickets. I don't believe that for a second, and working out why is worth more than
+the table.</p>
+
+<p>Groundedness is excluded from the comparable mean for a structural reason: the human's claims
+are backed by the order, the account and the tracking page, none of which the judge can see, so
+the rubric scores them as unsupported. The other three dimensions turned out to be contaminated
+too, in three ways I could measure.</p>
+
+<p><b>The judge marks down replies it was handed incomplete.</b> Seven of the 70 historical
+replies are explicitly part one of two, ending "(1/2)", because the brand splits long answers
+across tweets. Those score <b>3.00</b> on the comparable mean against <b>3.86</b> for the rest.
+The judge is reading half a reply and scoring it as a whole one.</p>
+
+<p><b>It punishes correct support behaviour it cannot verify.</b> Four replies tell a customer to
+stop posting tracking details on a public timeline (threads 288010, 2316996, 420919, 1219160).
+They average <b>2.58</b>. On one, the judge wrote that the reply "invents an ungrounded policy not
+found in any precedents" and "would embarrass the brand". My own <code>route.py</code>
+hard-escalates any message containing public PII for exactly the reason that human agent gave. The
+system's safety rule and the system's judge disagree about the same behaviour, and only one of
+them is right.</p>
+
+<p><b>It rewards problem-shaped boilerplate.</b> Thread 2750418: the customer tweets a photo of a
+Prime Now delivery that arrived at their hotel, pleased. The human replied in kind. The agent
+replied <i>"I'm sorry you haven't received your Prime delivery to Orlando"</i>, inventing a
+complaint that isn't there, and the judge scored the agent <b>3.33 higher</b>. Two more of the
+same shape (2687680, 2619718). That is an agent failure the judge recorded as a win.</p>
+
+<p>So the honest headline of this table is not that the agent is better. It is that an LLM judge
+with no account access, no thread context and no world knowledge systematically prefers
+grounded-sounding boilerplate to real support work. Every reply-quality number in this report
+inherits that bias, which is the strongest argument I have for why the judge-vs-human agreement
+statistic, not the rubric's apparent rigour, is what licenses any claim about reply quality.</p>
+
+<p>One more thing this measured that the report would otherwise have had to argue. The rubric says
+a handoff scores 1 on resolution. Six of the 70 historical replies are handoffs, and the judge gave
+them <b>4.00</b> on resolution against 3.48 for direct replies. Small sample, opposite sign: the
+judge is not applying the rule the rubric states.</p>
+
+<p>A note on two numbers that look inconsistent. The judge would send 87% of the agent's replies,
+but the router only auto-handles 31 of 70. Different questions: the judge scores the text, while
+the router also escalates on intent class (18 rows hit <code>never_auto_intent</code>), on thin
+precedent (13 hit <code>low_retrieval_similarity</code>) and on hard rules (4 safety, 3
+payment-card PII, 1 account compromise). The gate is deliberately not a function of reply
+quality.</p>
+
+<h3>3.2 Against the baselines</h3>
+
+<p class="pending"><i>Pending run.</i> From <code>results/eval_test.md</code> once the golden set
+is adjudicated and <code>make eval-test</code> has run once. Nothing is estimated ahead of it.</p>
+
+<p>Five systems are compared on the same rows, with bootstrap 95% CIs on every headline number:</p>
+
+<table>
+<thead><tr><th style="width:23%">System</th><th style="width:26%">Intent</th><th style="width:28%">Reply</th><th>Routing</th></tr></thead>
+<tbody>
+<tr><td><code>trivial_always_auto</code></td><td>majority class</td><td>one canned string</td><td>never escalates</td></tr>
+<tr><td><code>trivial_always_escalate</code></td><td>majority class</td><td>&mdash;</td><td>always escalates</td></tr>
+<tr><td><code>simple_tfidf_nn</code></td><td>TF-IDF + logistic regression</td><td>nearest historical reply, verbatim</td><td>thresholds only, no LLM</td></tr>
+<tr><td><code>agent_no_retrieval</code></td><td>LLM</td><td>LLM, no precedent</td><td>full router</td></tr>
+<tr><td><code>agent</code></td><td>LLM + retrieval</td><td>LLM, grounded in precedent</td><td>full router</td></tr>
+</tbody>
+</table>
+
+<p>The brief asks for two baselines. The third one, the ablation, is the one I care about most:
+it is the same LLM pipeline with retrieval switched off, so the gap between it and
+<code>agent</code> is what grounding actually buys, separated from what the language model would
+have done anyway. The trivial and simple baselines answer a different question, which is whether
+the dataset is easy.</p>
+
+<p>Two reporting choices matter for reading that table. Routing is reported as coverage and
+false-auto rate rather than accuracy, because a needless escalation and a bad public auto-reply
+cost wildly different amounts and one accuracy number averages them together. And the learned
+baselines are scored out-of-fold when the split being scored is the split they were fitted on:
+in-sample, <code>simple_tfidf_nn</code> returns 1.000 intent accuracy by memorisation, which
+would make the agent look hopeless against a lookup table.</p>
+
+<h2>4. Failure analysis</h2>
+
+<p>The full top five needs the golden labels, since ranking failure modes by frequency means
+knowing which rows are wrong. Three are already visible in the reference run, with real thread
+ids.</p>
+
+<p><b>1. The agent assumes a complaint when there isn't one.</b> Threads 2750418, 2687680,
+2619718. Retrieval returns the five nearest past messages, and on this queue almost every past
+message is a complaint, so a neutral or positive tweet gets grounded in complaint precedent and
+comes back as an apology for something that never happened. Hypothesis: a retrieval problem rather
+than a drafting one. The drafter is doing what it was told with the evidence it was given, and a
+similarity floor tuned for "is there precedent" does not catch "is this precedent the same
+<i>kind</i> of message".</p>
+
+<p><b>2. Thin precedent drives a third of all escalations.</b> 13 of 70 rows escalate on
+<code>low_retrieval_similarity</code> and 18 on <code>never_auto_intent</code>. The first is the
+system working as designed. It is also the ceiling on coverage, and no prompt change moves it:
+only a better index or more history would.</p>
+
+<p><b>3. The judge's blind spots become the agent's scoreboard.</b> Covered in 3.1: fragments
+penalised 0.86, PII enforcement scored 2.58, invented complaints rewarded. It belongs here because
+it is a failure of this evaluation rather than of the brand, and it is the one I would fix
+first.</p>
+
+<p class="pending"><i>Remaining modes pending the labelled set.</i></p>
+
+<h2>5. What is misleading about my headline number?</h2>
+
+<p>The brief makes this section mandatory, and it's the one I'd read first.</p>
+
+<p><b>1. There is one annotator, so the agreement figure is intra-annotator.</b> The &kappa; for
+label quality comes from re-labelling 50 examples blind, at least a day later. That measures
+self-consistency, so it's a ceiling on label quality, not inter-annotator agreement. A second
+annotator would almost certainly agree less. Every metric built on these labels has more slack in
+it than its confidence interval suggests, because the CI covers sampling noise and not label
+noise.</p>
+
+<p><b>2. The golden set was pre-labelled by the system it evaluates.</b> Weak labels came from the
+classifier and were adjudicated by hand. The override rate is published for exactly this reason:
+the lower it is, the more the golden set measures agreement-with-the-model rather than ground
+truth. No amount of care removes that anchoring completely.</p>
+
+<p><b>3. The language filter leaks, and I know by how much.</b> 10 of 8,496 corpus threads (0.12%)
+are non-English messages that got through because Latin brand names dominate the token count.
+One of them is in the golden set. I left it: fixing it means rebuilding the corpus, the
+clustering, the taxonomy and the weak labels to move 0.12% of the data.</p>
+
+<p><b>4. n = 80 on the test split, so the intervals are wide.</b> The golden set is 150 rather than
+250 because the compute budget was a local 4B model. That splits 70 dev / 80 test. Differences
+under roughly 10 points between systems aren't distinguishable from noise at this sample size, so
+any ranking that depends on a small gap should be read as "not established" rather than
+"smaller".</p>
+
+<p><b>5. The headline is one stratum, and the pooled number isn't production performance.</b> The
+golden set deliberately over-samples rare intents (25%) and hard cases (15%). Pooling understates
+real-traffic accuracy; reporting only the proportional stratum hides the tail. Both are given,
+but any single number quoted out of this report will mislead in one direction or the other.</p>
+
+<p><b>6. Historical replies are what the brand did, not what was good.</b> Retrieval grounds the
+agent in precedent, including precedent where the brand handed off, apologised without acting, or
+answered a different question. An agent that imitated this queue perfectly would hand off about
+10% of the time. The rubric scores deflection as a resolution failure so we don't reward that,
+which does mean reply scores are measured against a standard the brand's own historical replies
+don't always meet.</p>
+
+<p><b>7. The escalation labels are my judgement, not Amazon's policy.</b> "Should a human handle
+this?" was decided by me against a written guideline. A real support organisation has staffing,
+SLA and liability constraints that would move that line. The routing metrics measure agreement
+with my policy, not correctness against a real one.</p>
+
+<p><b>8. The judge is a different family from the drafter, but it's still a small model.</b>
+Drafter is Qwen, judge is Gemini falling back to Gemma: different vendors, different weights, so
+same-model self-preference is mostly removed by construction rather than merely measured. What's
+left is that a small judge is a weak judge. Its agreement with a human is measured, and that
+number is what licenses any reply-quality claim here, not the apparent rigour of the rubric.</p>
+
+<p><b>9. The hard-case slice was designed by the same person who built the agent.</b> It uses
+model-independent surface heuristics (length, caps ratio, emoji count, rage markers, multi-intent
+connectives) precisely to limit that, but which heuristics count as hard is still my choice.</p>
+
+<p><b>10. Thresholds are fitted on ~70 dev examples.</b> <code>tau_confidence</code> and
+<code>tau_similarity</code> are point estimates from a small sample. They won't transfer cleanly
+to a new period or a new brand, and the operating point they define is more fragile than one
+reported coverage number implies.</p>
+
+<p><b>11. The drafter is a small cheap model, so absolute quality isn't the architecture's
+ceiling.</b> Reply quality reflects <code>qwen3:4b</code> running locally, which I chose because
+~1000 calls per full run exceeds every free hosted budget available to me, not because it writes
+the best reply this pipeline could produce. Comparisons between systems are still fair, since
+every system uses the same generator. Swapping in a stronger drafter would move reply quality,
+and should, but it wouldn't validate the routing, which is where the value is.</p>
+
+<p><b>12. The confidence score isn't calibrated.</b> Routing partly depends on a self-reported LLM
+confidence, which is known to cluster high and behave more like a fluency signal than a
+probability. It's used because having no confidence signal is worse, not because it's
+trustworthy.</p>
+
+<p><b>13. The retrieval backend almost entirely determines what the agent sees.</b> I ran two
+embedding backends over the same corpus and the same 120 queries. They agree on the single most
+similar precedent 7.5% of the time, and their top-5 sets overlap 11.3%. So "grounded in how the
+brand historically resolved this" really means grounded in whatever neighbours the encoder
+happens to surface, and a different encoder would ground the same reply in almost entirely
+different evidence. Both backends return plausible precedent when you look at them, which is what
+makes this easy to miss: spot-checking retrieval and finding it fine does not establish that it
+is stable. Every reply-quality number here is conditional on this one choice.</p>
+
+<p><b>14. One brand, one snapshot.</b> All of this is AmazonHelp in late 2017. Nothing here
+establishes that the taxonomy, the thresholds or the judge's behaviour transfer to another brand
+or another year.</p>
+
+<h2>6. What I'd do with one more week</h2>
+
+<p>Ranked by how much each would change what I currently believe:</p>
+
+<ol>
+  <li><b>A second annotator on 100 examples.</b> Real inter-annotator &kappa; would replace the
+  weakest claim in this report with a measured one. Highest value by a distance.</li>
+  <li><b>Human preference over pairwise comparisons.</b> Absolute 1&ndash;5 judge scores are the
+  least reliable part of the reply evaluation. Pairwise A/B against the real historical reply is
+  more robust, and it answers "is this better than what the brand actually sent?" directly.</li>
+  <li><b>Calibrate the confidence signal.</b> Fit a reliability curve on dev, then route on
+  calibrated probability instead of raw self-report. The routing thresholds currently sit on an
+  uncalibrated number.</li>
+  <li><b>Transfer test on a second brand.</b> Re-run the whole pipeline on hulu_support without
+  re-tuning anything. Whatever degrades is the part that was overfitted to AmazonHelp.</li>
+  <li><b>Cost and latency accounting.</b> Three LLM calls per message is a real operating cost and
+  nothing here measures it. A cheaper router, rules only for the easy majority, is probably most
+  of the value.</li>
+  <li><b>Retrieval quality ablation.</b> Vary k, compare embedding backends, and measure how much
+  reply quality actually depends on retrieval depth.</li>
+</ol>
+
+</body>
+</html>

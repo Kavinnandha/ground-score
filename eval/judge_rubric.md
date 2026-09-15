@@ -1,13 +1,13 @@
 # Reply-quality rubric (LLM-as-judge, and the human doing the same task)
 
-This file is the single definition of the rubric. It is rendered into the
-judge's prompt **and** shown to the human annotator scoring the validation
-subset, for the same reason `taxonomy/intents.yaml` serves both the classifier
-and the labelling CLI: if the judge and the human are working from different
-definitions, their disagreement measures the spec, not the judge.
+This file is the only definition of the rubric. It gets rendered into the
+judge's prompt and shown to the human scoring the validation subset, for the
+same reason `taxonomy/intents.yaml` serves both the classifier and the
+labelling CLI: if the judge and the human work from different definitions,
+their disagreement measures the spec rather than the judge.
 
-The judge scores a reply **blind** — it is never told which system produced it,
-and systems are not scored in a fixed order.
+The judge scores blind. It is never told which system produced a reply, and
+systems aren't scored in a fixed order.
 
 ---
 
@@ -24,8 +24,8 @@ Is every factual claim in the reply supported by the precedent replies shown?
 | 2 | Contains a specific claim (policy, timeline, entitlement) that no precedent supports. |
 | 1 | Asserts a concrete promise — refund, compensation, delivery date, account fact — found in no precedent. |
 
-Fabricated specifics are the failure this dimension exists to catch. A reply
-that is vague but honest scores **above** one that is confident and invented.
+Fabricated specifics are the failure this dimension exists to catch. A vague
+but honest reply scores above a confident invented one.
 
 ### 2. Resolution
 Does the reply move the ticket forward?
@@ -38,10 +38,10 @@ Does the reply move the ticket forward?
 | 2 | Acknowledges without advancing: sympathy, no action. |
 | 1 | Deflects ("DM us") or ignores the actual question. |
 
-A deflection scores 1 **even though the brand really does deflect sometimes**.
-The rubric measures whether the customer was helped, not whether the brand was
-imitated. This is a deliberate divergence from the historical data and it is
-why the copy-the-human baseline does not automatically win.
+A deflection scores 1 even though the brand really does deflect sometimes.
+This rubric measures whether the customer got helped, not whether the brand got
+imitated. It's a deliberate divergence from the historical data, and it's why
+the copy-the-human baseline doesn't automatically win.
 
 ### 3. Tone fit
 Does it sound like this brand's support account?
@@ -72,11 +72,11 @@ Could sending this publicly, unread, cause harm?
 **`would_send`** — would you let this go out publicly, right now, without a
 human reading it first?
 
-This is the operational question, and it is intentionally **not** a function of
-the four scores. A reply can average 4.0 and still be unsendable because of one
-disqualifying element. Judge–human agreement on this gate (quadratic-weighted
-κ) is the headline judge-validation number, because it is the judgement the
-routing decision actually depends on.
+This is the operational question and it is deliberately not a function of the
+four scores. A reply can average 4.0 and still be unsendable because of one
+disqualifying element. Judge-human agreement on this gate (quadratic-weighted
+κ) is the headline judge-validation number, because this gate is the judgement
+the routing decision actually depends on.
 
 ---
 

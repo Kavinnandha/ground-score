@@ -1,12 +1,12 @@
 # ground-score
 
-An AI support agent for **@AmazonHelp** built from real Twitter support
-threads, plus the evaluation harness that says how much to trust it.
+An AI support agent for **@AmazonHelp**, built from real Twitter support
+threads, plus the evaluation harness that tells you how much to trust it.
 
-The brief's framing — *"the proof is worth more than the system"* — is taken
-literally. The agent is deliberately small: retrieve → classify → draft →
-route. Most of the work is in the golden set, the evaluation harness, the
-judge validation, and the honest accounting of what the headline number hides.
+The brief says the proof is worth more than the system, so I took that
+literally. The agent itself is small: retrieve → classify → draft → route.
+Most of the effort went into the golden set, the eval harness, checking the
+judge against a human, and being upfront about what the headline number hides.
 
 ---
 
@@ -17,38 +17,39 @@ pip install -r requirements.txt
 make reproduce
 ```
 
-No `make` (e.g. a stock Windows shell)? The target is a one-line wrapper:
+If you don't have `make` (stock Windows shell, say), the target is a one-line
+wrapper:
 
 ```bash
 pip install -r requirements.txt && python scripts/reproduce.py
 ```
 
-`make reproduce` regenerates every table in `results/` from artifacts committed
-to this repository: the 10k-thread corpus subsample, the embedding cache, and
-the model response cache. It runs with API keys **stripped from the
-environment**, so any step that is not fully cached fails loudly rather than
-silently making live calls and producing numbers that differ from the published
-ones. Cache misses must be zero; the script reports them.
+`make reproduce` rebuilds every table in `results/` from artifacts that are
+committed here: the 8.5k-thread corpus subsample, the embedding cache, and the
+model response cache. It runs with API keys stripped out of the environment, so
+any step that isn't fully cached blows up instead of quietly making live calls
+and handing you numbers that don't match the published ones. Cache misses have
+to be zero, and the script prints the count.
 
 ### Models: one chain per role, not one provider per run
 
-**The drafter and the judge must not share a lineage.** A model grading its own
-output cannot rule out self-preference, so each *role* carries its own ordered
-list of providers rather than inheriting a single global backend:
+The drafter and the judge must not share a lineage. A model grading its own
+output can't rule out self-preference. So each *role* carries its own ordered
+list of providers instead of inheriting one global backend:
 
 | Role | Default chain | Model | Why |
 |---|---|---|---|
-| classify + draft (`@fast`) | `$GROUNDSCORE_PROVIDER` → `ollama` | `qwen3:4b` locally, `gemini-3.5-flash-lite` when hosted | the high-volume role: ~1000 calls per full run, which no free hosted tier covers |
-| judge (`@judge`) | `gemini` → `ollama` | `gemini-3.1-flash-lite` → `gemma3:4b` | **a different vendor and family from the drafter**, so reply scores are not one lineage grading itself |
+| classify + draft (`@fast`) | `$GROUNDSCORE_PROVIDER` → `ollama` | `qwen3:4b` locally, `gemini-3.1-flash-lite` when hosted | the high-volume role, ~1000 calls per full run, which no free hosted tier covers |
+| judge (`@judge`) | `gemini` → `ollama` | `gemini-3.5-flash-lite` → `gemma3:4b` | different vendor and family from the drafter, so reply scores aren't one lineage grading itself |
 | self-preference probe (`@cross`) | same as `@fast` | the drafter's own model | the gap against the headline judge bounds self-preference |
 | embeddings | `ollama` only | `nomic-embed-text` | keyless, no quota, and the committed vectors are keyed to this tag |
 
-Two providers exist: `ollama` and `gemini`. `GROUNDSCORE_PROVIDER` defaults to
-`ollama`, so drafting is local and only judging is hosted. Only `@judge` has a
-default chain of its own — deliberately, so cross-vendor judging survives
-someone changing the global provider.
+There are two providers: `ollama` and `gemini`. `GROUNDSCORE_PROVIDER` defaults
+to `ollama`, so drafting is local and only judging is hosted. `@judge` is the
+only role with a default chain of its own, and that's on purpose: cross-vendor
+judging should survive somebody flipping the global provider.
 
-Override any chain with a comma-separated list, preference first:
+Override any chain with a comma-separated list, most preferred first:
 
 ```bash
 GROUNDSCORE_ROLE_JUDGE=ollama,gemini   # judge locally, fall back to hosted
@@ -56,42 +57,48 @@ GROUNDSCORE_ROLE_FAST=gemini,ollama    # draft on a hosted model (paid key advis
 GROUNDSCORE_PROVIDER=gemini            # default head for roles without a chain
 ```
 
-**Fallback never silently mixes two judges into one number.** A role is pinned
-to whichever provider first serves it. If that provider dies mid-run (the free
-Gemini tier meters requests per day per model — see the table below and
-`DECISIONS.md` #22), the switch prints a warning, is recorded in `results/eval_*.json` under
-`providers.switches`, and **every judged row is tagged with the model that
-actually scored it** (`judge_model`). A split scored by two models is visible
-rather than averaged away. Replay checks every provider in the chain, so
-reordering it does not invalidate the committed cache.
+Fallback never quietly blends two judges into one number. A role gets pinned to
+whichever provider serves it first. If that provider dies mid-run (the free
+Gemini tier meters requests per day per model, see the table below and
+`DECISIONS.md` #22) the switch prints a warning, lands in
+`results/eval_*.json` under `providers.switches`, and every judged row carries
+the model that actually scored it in `judge_model`. A split scored by two
+models stays visible instead of being averaged away. Replay checks every
+provider in the chain, so reordering it doesn't invalidate the committed cache.
 
-**Model ids were picked on the free tier's daily budget, not on capability.**
-The ceiling that matters is requests-per-day-per-model, and it varies by 700x
-across the ids this key can reach:
+I picked the model ids on the free tier's daily budget, not on capability. The
+ceiling that actually bites is requests-per-day-per-model, and it varies by
+700x across the ids this key can reach. Google stopped publishing that table on
+the rate-limits page (it now sends you to the AI Studio dashboard), so these are
+probed, not quoted:
 
 | Model | RPM | RPD | Verdict |
 |---|---:|---:|---|
-| `gemini-3.x-flash` | 5 | 20 | unusable — a judged split is ~450 calls |
-| `gemini-3.x-flash-lite` | 15 | 500 | **the default for both hosted roles**; covers one split per day |
-| `gemma-4-31b-it` | 30 | 14,400 | escape hatch only: it returns 503 under ordinary load, and 500 on `response_schema` unless a system instruction is sent with it (both handled, but a judge that intermittently 503s cannot carry a headline number) |
+| `gemini-3.x-flash` | 5 | 20 | unusable, a judged split is ~450 calls |
+| `gemini-3.5-flash-lite` | 15 | 500 | **the judge.** 6/6 reachable when probed; covers one split per day |
+| `gemini-3.1-flash-lite` | 15 | 500 | same budget on paper, but **0/8 reachable** — every call returns 503 "high demand", schema or no schema. It is the hosted drafter id, a role that doesn't run by default |
+| `gemma-4-31b-it` | 8 | 14,400 | escape hatch only: ~15s a call, returns 503 under ordinary load, and 500 on `response_schema` unless you send a system instruction with it (both handled, but a judge that intermittently 503s can't carry a headline number) |
 
-Live calls are paced **per model** from that table, not by one global rate, and
-the daily count is enforced in-process: hitting it raises `DailyQuotaExhausted`
-so the chain falls through to Ollama immediately, rather than collecting a retry
-ladder of 429s on every remaining row. What each model actually served is
-written into `results/eval_*.json` under `providers.live_calls`.
+A model being listed by `models.list()` and documented does not mean you can
+call it. That cost a run to find out, and it is why the chain exists.
 
-If the 500/day budget is not enough for the day's work, set
-`GROUNDSCORE_ROLE_JUDGE=ollama` up front so one model scores the whole split —
-that is honest, where a mid-split fallback is merely visible.
+Live calls are paced per model from that table rather than by one global rate,
+and the daily count is enforced in-process: hitting it raises
+`DailyQuotaExhausted` so the chain drops through to Ollama immediately, instead
+of collecting a retry ladder of 429s on every remaining row. What each model
+actually served goes into `results/eval_*.json` under `providers.live_calls`.
+
+If 500/day isn't enough for the day's work, set `GROUNDSCORE_ROLE_JUDGE=ollama`
+up front so one model scores the whole split. That's honest; a mid-split
+fallback is only visible.
 
 Embeddings never touch a hosted API. The embedding cache is keyed on
 `(model, dim, text)` rather than on provider, so the committed
-`nomic-embed-text` vectors stay valid whatever generation runs on; every corpus
-and golden-set text is already in it, and a miss is fatal rather than silently
-re-embedded into a different vector space.
+`nomic-embed-text` vectors stay valid whatever generation runs on. Every corpus
+and golden-set text is already in there, and a miss is fatal rather than
+silently re-embedded into a different vector space.
 
-Only needed to *regenerate* results:
+You only need keys to *regenerate* results:
 
 ```bash
 pip install -r requirements.txt   # then set keys in .env for the chains you use
@@ -108,43 +115,64 @@ make test     # property tests: leakage, split stability, cache, routing rules
 For each incoming customer message:
 
 1. **Retrieve** the 5 most similar past customer messages from this brand's
-   history, with the brand's actual replies (`src/groundscore/retrieve.py`).
-2. **Classify** into one of the intents in `taxonomy/intents.yaml`, with the
-   retrieved neighbours as dynamic few-shot context (`classify.py`).
-3. **Draft** a ≤280-character reply that may assert only what the retrieved
-   replies support, citing which ones it used in `grounded_in` (`draft.py`).
-4. **Route** to auto-send or a human, with a stated reason
-   (`route.py`) — deterministic rules first, LLM only for what survives them.
+   history, along with what the brand actually replied
+   (`src/groundscore/retrieve.py`).
+2. **Classify** into one of the intents in `taxonomy/intents.yaml`, using those
+   neighbours as dynamic few-shot context (`classify.py`).
+3. **Draft** a ≤280-character reply that may only assert what the retrieved
+   replies support, and has to cite which ones it used in `grounded_in`
+   (`draft.py`).
+4. **Route** to auto-send or to a human with a stated reason (`route.py`).
+   Deterministic rules run first; the LLM only sees what survives them.
 
 ### Why rules run before the model
 
-Escalations carry an attributable `triggered_rule`, so a support lead can see
-*why* something escalated. Hard rules (account compromise, legal/press, safety,
-PII in the message, an ungrounded draft) sit ahead of every threshold, and
-`forced_escalation()` prevents the coverage curve from sweeping them away. A
-confident classifier must not be able to auto-send a fraud report.
+Escalations come with an attributable `triggered_rule`, so a support lead can
+see *why* something escalated. Hard rules (account compromise, legal/press,
+safety, PII in the message, an ungrounded draft) sit ahead of every threshold,
+and `forced_escalation()` stops the coverage curve from sweeping them away. A
+confident classifier should not be able to auto-send a fraud report.
+
+### Watching one message go through
+
+```bash
+make ui          # or: python tools/ui.py
+```
+
+A single page on `http://127.0.0.1:8000` that runs one message through the
+pipeline and shows every stage: the routing decision and which rule produced
+it, the drafted reply, the classifier's rationale, and the precedent the draft
+was allowed to lean on. It's `http.server` and one HTML string, no web
+dependency, because `make reproduce` has to stay installable from
+`requirements.txt` alone.
+
+It calls a live provider, so drafting needs Ollama running (or
+`GROUNDSCORE_PROVIDER=gemini` with a key). The cached replay path is
+`make reproduce`, not this. Retrieval uses the configured backend by default;
+`--backend tfidf` runs the index keyless. `--no-retrieval` gives you the
+ungrounded ablation, so you can sit it in a second tab next to the grounded one.
 
 ---
 
 ## How performance is reported
 
-**Routing is not reported as accuracy.** The two errors have very different
-costs: a needless escalation costs an agent thirty seconds, while a bad public
+Routing is not reported as accuracy. The two errors cost very different
+amounts: a needless escalation costs an agent thirty seconds, a bad public
 auto-reply is permanent. So the harness reports:
 
-- **coverage** — share of messages handled with no human
-- **false-auto rate** — of the replies we auto-sent, the share that should have
+- **coverage**, the share of messages handled with no human
+- **false-auto rate**, the share of the replies we auto-sent that should have
   gone to a human (customer-facing harm density)
-- and the **coverage vs. false-auto curve** over the confidence threshold,
-  so the operating point is visible rather than implied.
+- the **coverage vs. false-auto curve** over the confidence threshold, so the
+  operating point is visible instead of implied
 
 Every headline number carries a bootstrap 95% CI. With 80 test examples those
 intervals are wide, and the report says so instead of quoting three decimals.
 
-**Reply quality** is scored by an LLM judge against `eval/judge_rubric.md`
+Reply quality is scored by an LLM judge against `eval/judge_rubric.md`
 (groundedness, resolution, tone fit, safety, each 1–5, plus a binary
-*would you send this?* gate). The judge's agreement with a human is measured,
-not assumed — see below.
+*would you send this?* gate). How well the judge agrees with a human is
+measured rather than assumed. See below.
 
 ---
 
@@ -158,30 +186,30 @@ not assumed — see below.
 | `agent_no_retrieval` | LLM | LLM, no precedent | full router |
 | `agent` | LLM + retrieval | LLM, grounded | full router |
 
-The third baseline is an **ablation**, not a requirement of the brief. Trivial
-and simple answer "is this dataset easy?"; only the ablation answers "does the
+The third one is an ablation, not something the brief asked for. Trivial and
+simple answer "is this dataset easy?". Only the ablation answers "does the
 grounding actually do anything?".
 
-Baselines are fitted on the **dev** split only. When the split being scored *is*
-dev, the learned baselines are predicted **out-of-fold** (5-fold) instead of
-being handed their own training rows — in-sample, `simple_tfidf_nn` returns
-1.000 intent accuracy by memorisation, which would make the agent look hopeless
+Baselines are fitted on the **dev** split only. When the split being scored
+*is* dev, the learned baselines get predicted out-of-fold (5-fold) instead of
+being handed their own training rows. In-sample, `simple_tfidf_nn` returns
+1.000 intent accuracy by memorisation, which makes the agent look hopeless
 against a lookup table. Out-of-fold it scores what it can actually generalise
-to. The test split is unaffected (fitted on dev, scored on test).
+to. The test split isn't affected either way (fitted on dev, scored on test).
 
 ---
 
 ## Golden set
 
 150 hand-adjudicated examples from threads held out of the retrieval index
-entirely. Sampling and labelling procedure, including its limitations, is in
+entirely. The sampling and labelling procedure, limitations included, is in
 [`data/golden/LABELING_NOTES.md`](data/golden/LABELING_NOTES.md).
 
 Short version: three strata (60% traffic-proportional, 25% rare-intent
-oversample, 15% hand-picked hard cases), stratified over **unsupervised
-clusters** rather than predicted intent to avoid circularity, scored
-**separately** rather than pooled. Dev/test assigned by stable hash before any
-label was written.
+oversample, 15% hand-picked hard cases), stratified over unsupervised clusters
+rather than predicted intent so the sampling isn't circular, and scored
+separately rather than pooled. Dev/test was assigned by stable hash before a
+single label was written.
 
 ---
 
@@ -190,33 +218,67 @@ label was written.
 `eval/judge_agreement.py` reports:
 
 - **Spearman ρ** per rubric dimension against blind human scores
-- **quadratic-weighted κ** on the `would_send` gate — the headline number,
-  because that gate is the judgement routing depends on
-- **mean bias** (judge − human): a judge can correlate well and still sit a
-  full point high
-- **verbosity probe**: identical replies re-judged with filler appended; any
-  score movement is length bias
-- **self-preference probe**: a subset is re-scored with the drafter's own
-  model and the gap against the headline judge is reported, along with
-  `same_vendor_as_drafter`. When the judge chain has fallen back onto the
-  drafter's own vendor that flag flips true and the gap becomes a **discount to
-  apply** to the reply-quality headline rather than a sanity check
+- **quadratic-weighted κ** on the `would_send` gate, which is the headline
+  number because that gate is the judgement routing depends on
+- **mean bias** (judge − human), since a judge can correlate well and still sit
+  a full point high
+- a **verbosity probe**: identical replies re-judged with filler appended, and
+  any score movement is length bias
+- a **self-preference probe**: a subset re-scored with the drafter's own model,
+  reporting the gap against the headline judge along with
+  `same_vendor_as_drafter`. If the judge chain has fallen back onto the
+  drafter's own vendor, that flag flips true and the gap turns into a discount
+  to apply to the reply-quality headline rather than a sanity check.
 
-Human scores are collected *before* judge output is read; the CLI refuses to
-run otherwise.
+Human scores get collected *before* anyone reads judge output. The CLI refuses
+to run otherwise.
+
+---
+
+## The reference point nobody asks for: how good was the brand's own reply?
+
+```bash
+make reference        # or: python eval/reference_replies.py --split dev
+```
+
+Every other number in this repo is self-referential. "The agent scores 3.4 on a
+rubric I wrote, judged by a model I chose" doesn't tell you whether that's good.
+So the same blind judge scores the reply @AmazonHelp actually sent for each
+golden-pool thread, against the same retrieved precedent, on the same rubric.
+Two replies, one message, one judge that isn't told which is which.
+
+It needs no labels, so it runs before the golden set is adjudicated, and it
+answers three things the report would otherwise have to argue:
+
+- **A human reference for reply quality.** Same rows, same rubric, a real
+  support agent's answer.
+- **Whether the deflection rule is fair.** The rubric scores "please reach out
+  here" as a resolution failure. This measures that rule against the brand's
+  real replies instead of defending it in prose.
+- **How strict our own gate is.** The share of replies this brand really posted
+  in public that our `would_send` gate would have blocked. If that share is
+  high, the gate is stricter than the brand, and every coverage number has to be
+  read against that.
+
+It is deliberately not a fair fight, and the output says so in a `caveats`
+field. The human had the account, the order and the tracking page open; the
+agent had five old tweets. Groundedness in particular is not comparable — the
+human's facts are backed by systems the judge can't see, so the rubric scores
+them as unsupported. That dimension is reported but excluded from the headline
+delta, which uses resolution, tone fit and safety only.
 
 ---
 
 ## Full rebuild from raw data
 
 Needs Ollama running (drafting, embeddings) and `GEMINI_API_KEY` set (the
-judge). `make embeddings` is the one step you should not need to rerun, since
+judge). `make embeddings` is the one step you shouldn't need to rerun, since
 its cache is committed.
 
 Local models run on the GPU: a 4B model at q4 fits a 6GB card with room for the
 8K context, which is what makes local drafting a backend rather than a
 bottleneck. On integrated graphics the same models take 60–90s per call and a
-full run is an overnight job — see `DECISIONS.md` #28.
+full run becomes an overnight job. See `DECISIONS.md` #28.
 
 ```bash
 make full            # download -> corpus -> embeddings -> intent clusters
@@ -233,16 +295,16 @@ make judge-agreement
 make eval-test       # score the test split ONCE
 ```
 
-**The order of those middle three is load-bearing, not stylistic.** Human reply
-scores have to be recorded before the judge has produced an opinion of the same
-replies — otherwise the "human" is anchored to the judge and the agreement
-statistic measures nothing. But replies have to exist before anyone can score
-them. So: `replies` (generate, don't judge) → `judge-human` (blind) → `eval`
-(judge). `tools/score_replies_cli.py` refuses to run once judge scores exist for
-the split, so getting this wrong fails loudly rather than quietly producing a
-flattering κ.
+The order of those middle three is load-bearing, not stylistic. Human reply
+scores have to be recorded before the judge has an opinion about the same
+replies, otherwise the "human" is anchored to the judge and the agreement
+statistic measures nothing. But the replies have to exist before anyone can
+score them. Hence `replies` (generate, don't judge) → `judge-human` (blind) →
+`eval` (judge). `tools/score_replies_cli.py` refuses to run once judge scores
+exist for the split, so getting this wrong fails loudly instead of quietly
+producing a flattering κ.
 
-The Kaggle dataset downloads without credentials (verified 2026-09);
+The Kaggle dataset downloads without credentials (checked 2026-09), and
 `scripts/download_data.py` falls back to token auth and then to manual
 instructions.
 
@@ -254,12 +316,12 @@ instructions.
 configs/brand.yaml          brand choice + corpus/split/sampling parameters
 configs/thresholds.yaml     routing thresholds, fitted on dev, frozen
 taxonomy/intents.yaml       intent definitions — classifier prompt AND annotator guide
-data/processed/threads.jsonl  committed 10k-thread corpus subsample
+data/processed/threads.jsonl  committed 8.5k-thread corpus subsample
 data/golden/                golden set + labelling notes
 cache/                      committed model + embedding caches (keyless reproduction)
 src/groundscore/            ingest, cleaning, retrieval, agent stages, baselines
 eval/                       metrics, judge, judge validation, threshold tuning
-tools/                      labelling and human-scoring CLIs
+tools/                      labelling and human-scoring CLIs, plus the browser UI
 results/                    generated tables and raw outputs
 tests/                      property tests for leakage, splits, caching, routing
 ```
@@ -268,15 +330,15 @@ tests/                      property tests for leakage, splits, caching, routing
 
 ## Results
 
-Generated into `results/` by `make reproduce`:
+`make reproduce` writes these into `results/`:
 
-- `brand_profile.md` — the evidence behind the brand choice
-- `eval_dev.md`, `eval_test.md` — system comparison tables with CIs
-- `threshold_sweep.json` — coverage vs. false-auto curve
-- `judge_agreement.json` — judge-vs-human validation
-- `outputs_*.jsonl`, `judge_*.jsonl` — per-example outputs and scores
+- `brand_profile.md`, the evidence behind the brand choice
+- `eval_dev.md`, `eval_test.md`, system comparison tables with CIs
+- `threshold_sweep.json`, the coverage vs. false-auto curve
+- `judge_agreement.json`, judge-vs-human validation
+- `outputs_*.jsonl`, `judge_*.jsonl`, per-example outputs and scores
 
-The written analysis — problem framing, results, top-5 failure modes, the
+The written analysis (problem framing, results, top-5 failure modes, the
 mandatory *"what is misleading about my headline number"* section, and next
-steps — is in [`REPORT.md`](REPORT.md). Non-obvious choices and citations are
-in [`DECISIONS.md`](DECISIONS.md).
+steps) is in [`REPORT.md`](REPORT.md). Non-obvious choices and citations are in
+[`DECISIONS.md`](DECISIONS.md).

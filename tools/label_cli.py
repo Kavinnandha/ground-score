@@ -6,7 +6,7 @@ item, so labelling can be done in several sittings.
 
 Why pre-fill at all
 -------------------
-Typing 200 labels from scratch invites fatigue drift: the last fifty get less
+Typing 150 labels from scratch invites fatigue drift: the last fifty get less
 attention than the first fifty. Adjudicating a proposal is faster and more
 consistent. The cost is anchoring bias -- the human is pulled toward the
 proposal -- and that cost is made visible rather than denied: the override rate
