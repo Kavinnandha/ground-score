@@ -78,7 +78,7 @@ def main() -> int:
             "similarity": best_sim,
         },
         "_note": (
-            "Chosen on the dev split only. With ~80 dev examples these values are "
+            "Chosen on the dev split only. With ~70 dev examples these values are "
             "themselves noisy estimates; the report treats them as a fitted "
             "parameter, not a discovered constant."
         ),

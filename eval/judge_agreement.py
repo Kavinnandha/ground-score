@@ -10,10 +10,11 @@ The assignment asks for evidence, so this produces four things:
                   quality, and the headline reply score would inherit that.
   3. Verbosity    the same replies re-judged with filler appended. Any score
                   probe        movement is length bias, since content is unchanged.
-  4. Self-        the same replies re-judged by a DIFFERENT MODEL FAMILY
-     preference   (Gemma vs Gemini). If the Gemini judge rates Gemini-written
-                  replies systematically higher than the outside judge does,
-                  that gap is self-preference and it inflates the headline.
+  4. Self-        the same replies re-judged by the DRAFTER'S OWN MODEL
+     preference   (@cross). If the headline judge rates these replies higher
+                  than the model that wrote them does, that gap bounds
+                  self-preference. `same_vendor_as_drafter` says whether it is
+                  a discount to apply or a cross-vendor sanity check.
 
 Ordering is enforced: human scores must already exist on disk before this runs.
 That is what makes them blind -- they cannot have been anchored to judge output

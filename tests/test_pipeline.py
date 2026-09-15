@@ -178,7 +178,7 @@ def _ok_draft():
 @requires_taxonomy
 def test_hard_rules_beat_high_confidence():
     """A confident classifier must not be able to auto-send a fraud report."""
-    decision = route.route("my account was hacked and someone ordered a laptop",
+    decision = route.route("someone hacked my acc n ordered a laptop wtf",
                            _ok_classification(), _ok_draft(),
                            tau_confidence=0.0, tau_similarity=0.0, use_llm=False)
     assert decision.action == route.ESCALATE
@@ -187,7 +187,7 @@ def test_hard_rules_beat_high_confidence():
 
 @requires_taxonomy
 def test_pii_forces_escalation():
-    decision = route.route("my card 4111 1111 1111 1111 was charged twice",
+    decision = route.route("u charged my card 4111 1111 1111 1111 twice for 1 order??",
                            _ok_classification(), _ok_draft(),
                            tau_confidence=0.0, tau_similarity=0.0, use_llm=False)
     assert decision.action == route.ESCALATE
@@ -197,7 +197,7 @@ def test_pii_forces_escalation():
 @requires_taxonomy
 def test_ungrounded_draft_escalates():
     draft = Draft(reply="You'll get a full refund within 24 hours.", grounded_in=[])
-    decision = route.route("where is my order", _ok_classification(), draft,
+    decision = route.route("where my order at", _ok_classification(), draft,
                            tau_confidence=0.0, tau_similarity=0.0, use_llm=False)
     assert decision.action == route.ESCALATE
     assert decision.triggered_rule == "draft_ungrounded"
@@ -205,7 +205,7 @@ def test_ungrounded_draft_escalates():
 
 @requires_taxonomy
 def test_low_similarity_escalates():
-    decision = route.route("where is my order",
+    decision = route.route("where is my order?? no update since 3 days",
                            _ok_classification(similarity=0.10), _ok_draft(),
                            tau_confidence=0.0, tau_similarity=0.75, use_llm=False)
     assert decision.action == route.ESCALATE
@@ -214,7 +214,7 @@ def test_low_similarity_escalates():
 
 @requires_taxonomy
 def test_clean_case_can_auto_when_llm_router_disabled():
-    decision = route.route("where is my order please", _ok_classification(), _ok_draft(),
+    decision = route.route("hi where my parcel at, ordered it monday", _ok_classification(), _ok_draft(),
                            tau_confidence=0.5, tau_similarity=0.5, use_llm=False)
     assert decision.action == route.AUTO
 
@@ -222,7 +222,7 @@ def test_clean_case_can_auto_when_llm_router_disabled():
 @requires_taxonomy
 def test_forced_escalation_cannot_be_swept_away():
     """The coverage curve must never auto-send something a hard rule forbids."""
-    assert route.forced_escalation("someone hacked my account", _ok_classification(), _ok_draft())
+    assert route.forced_escalation("someone hacked my acc n ordered stuff", _ok_classification(), _ok_draft())
     assert not route.forced_escalation("where is my parcel", _ok_classification(), _ok_draft())
 
 
@@ -377,6 +377,37 @@ def test_provider_switch_is_recorded_not_silent(monkeypatch):
     assert llm.complete("p", model=llm.MODEL_JUDGE) == "ok"
     assert llm.SERVING["judge"].startswith("ollama:")
     assert any("RESOURCE_EXHAUSTED" in e["reason"] for e in llm.PROVIDER_EVENTS)
+
+
+def test_a_degraded_start_is_reported_not_just_a_mid_run_switch(monkeypatch):
+    """Failing over on the FIRST call is not a switch, and used to vanish.
+
+    With a dead judge key the chain falls straight to Ollama before any
+    provider has served, so `previous` is None and the event was filtered out
+    of the results file. The run then looked like a deliberate local judge
+    rather than a substituted one.
+    """
+    monkeypatch.setenv("GROUNDSCORE_ROLE_JUDGE", "gemini,ollama")
+    monkeypatch.delenv("GROUNDSCORE_OFFLINE", raising=False)
+    monkeypatch.setattr(llm, "_cache_get", lambda k: None)
+    monkeypatch.setattr(llm, "_cache_put", lambda *a: None)
+    monkeypatch.setattr(llm, "usable", lambda prov: True)
+    monkeypatch.setattr(llm, "_pinned", {})
+    monkeypatch.setattr(llm, "SERVING", {})
+    monkeypatch.setattr(llm, "PROVIDER_EVENTS", [])
+
+    def dispatch(prov, model, *a):
+        if prov == "gemini":
+            raise RuntimeError("401 UNAUTHENTICATED")
+        return "ok"
+
+    monkeypatch.setattr(llm, "_dispatch", dispatch)
+    assert llm.complete("p", model=llm.MODEL_JUDGE) == "ok"
+
+    report = llm.provider_report()
+    assert report["switches"] == []          # nothing switched: nothing had served
+    assert len(report["degraded_starts"]) == 1
+    assert "401" in report["degraded_starts"][0]["reason"]
 
 
 # --------------------------------------------------------------------------

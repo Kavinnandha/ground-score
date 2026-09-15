@@ -12,8 +12,11 @@ happen to produce an identical reply get the identical score, for free, which
 is a small but real guard against inconsistent grading.
 
 Known limits, measured rather than asserted (see judge_agreement.py):
-  * The judge is a Gemini model grading Gemini-written replies. A cross-family
-    judge (Gemma) scores a subset so that self-preference can be estimated.
+  * The judge (@judge, Gemini) and the drafter (@fast, local Qwen) are
+    different vendors and different families, so self-preference is mostly
+    removed by construction. It is still probed: a subset is re-scored with the
+    drafter's own model, and the gap is reported alongside a flag saying
+    whether the chain has fallen back onto the drafter's vendor.
   * LLM judges are known to reward verbosity. A length-perturbation probe
     quantifies it here rather than assuming it away.
 """

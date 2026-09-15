@@ -35,7 +35,7 @@ split:
   # Stable-hash buckets in [0, 100). The golden pool is held out of the
   # retrieval index entirely -- without this the agent can retrieve the very
   # thread it is being evaluated on and score its own answer key.
-  golden_pool_buckets: 6        # ~6% -> ~480 threads to sample 200 from
+  golden_pool_buckets: 6        # ~6% -> 498 threads, which 150 are sampled from
   # Everything else becomes the retrieval corpus.
 
 golden:
@@ -53,22 +53,23 @@ retrieval:
 
   # Embedding backend for the retrieval index and for intent clustering.
   #
-  # 'tfidf'  char-ngram TF-IDF + TruncatedSVD (scikit-learn only)
-  # 'gemini' gemini-embedding-001, cached to cache/emb_cache.npz
+  # 'ollama' nomic-embed-text, run locally, vectors committed to
+  #          cache/emb_cache.npz. This is what ships.
+  # 'tfidf'  char-ngram TF-IDF + TruncatedSVD, scikit-learn only. Keyless and
+  #          Ollama-less fallback, and what tools/ui.py --backend tfidf uses.
+  # 'gemini' gemini-embedding-001. Implemented, not used: the free-tier quota
+  #          stalled three separate corpus runs after 40, 600 and 650 of the
+  #          10,026 messages, returning 429s with retry hints it then ignored.
   #
-  # Shipped default is tfidf, and that is a constraint talking, not a
-  # preference. The free-tier embedding quota on this key admits roughly 100
-  # texts/minute in theory and far less in practice -- repeated runs stalled
-  # after 40-650 of the 10,026 messages, with the server returning 429s and
-  # retry hints it then did not honour. Embedding the corpus was not achievable
-  # in the time available.
+  # TF-IDF carried the pipeline while the hosted embedder was failing, and its
+  # weakness is real: char n-grams match surface form, so "can't log in" and
+  # "password reset loop" sit further apart than they should. nomic-embed-text
+  # turned out to run locally at ~324 texts/minute with no quota, which is
+  # strictly better, so it took over. The two backends agree on the top-1
+  # precedent only 7.5% of the time -- see REPORT.md, that instability is a
+  # headline caveat, not a footnote.
   #
-  # The trade is real and is reported rather than buried: char n-grams match
-  # surface form, so "can't log in" and "password reset loop" stay further apart
-  # than they should. Spot checks (see REPORT.md) show retrieval is still
-  # returning topically-correct precedent with usable similarity margins.
-  #
-  # Two things this accidentally improves: `make reproduce` now needs no
-  # embedding cache at all, and the repo stays small. Switch to 'gemini' and run
-  # `make embeddings` with a paid-tier key to use the better backend.
+  # The cache is keyed on (model, dim, text), not on provider, so the committed
+  # vectors survive a backend switch. A miss is fatal rather than re-embedded
+  # into a second vector space.
   backend: ollama

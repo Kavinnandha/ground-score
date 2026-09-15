@@ -47,25 +47,37 @@ CACHE_PATH = Path(os.environ.get(
 # env-overridable, because the binding constraint on the free tier is requests
 # per DAY, and that number moves.
 #
-# Measured against this key (2026-09, free tier). The daily cap, not capability,
-# is what picked these:
+# Measured against this key (2026-09, free tier). Google no longer publishes the
+# per-model RPM/RPD table on the rate-limits page -- it now points at the AI
+# Studio rate-limit dashboard -- so these came from probing, not from docs:
 #
 #   gemini-3.x-flash        5 RPM /    20 RPD  unusable: a judged split is ~450 calls
 #   gemini-3.x-flash-lite  15 RPM /   500 RPD  the smallest tier that covers a split
-#   gemma-4-31b-it         30 RPM / 14400 RPD  huge budget, but see below
+#   gemma-4-31b-it          8 RPM / 14400 RPD  huge budget, but see below
+#
+# AVAILABILITY IS NOT THE SAME AS EXISTENCE, which cost a run to learn.
+# gemini-3.1-flash-lite is listed by models.list(), is documented, and returns
+# 503 UNAVAILABLE ("high demand") on every single call from this project --
+# 0 of 8 attempts, with and without `response_schema`. gemini-3.5-flash-lite
+# answered 6 of 6 in the same minute. So the judge sits on 3.5-flash-lite: a
+# judge that cannot be reached is not a judge, it is a silent fallback to
+# whatever is next in the chain.
+#
+# That leaves 3.1-flash-lite as the hosted DRAFTER id, which matters less --
+# drafting runs locally by default, and ~1000 calls per run exceeds any free
+# hosted budget anyway. The two roles must stay different ids so they cannot
+# collapse onto one model if someone moves drafting to Gemini as well, which
+# tests/test_pipeline.py asserts.
 #
 # gemma-4-31b-it looks like the obvious judge on budget alone and is not the
 # default, for two reproducible reasons: it returns 503 "high demand" under
 # ordinary load, and it returns 500 on `response_schema` unless a
 # `system_instruction` is sent alongside it. Both are handled (see
-# `_call_gemini`) so it stays a working escape hatch for when the 500/day
-# lite budget runs out -- GROUNDSCORE_GEMINI_JUDGE=gemma-4-31b-it -- but a
-# judge that intermittently 503s cannot be what a headline number rests on.
-#
-# The judge is pinned to a different generation from the drafter so the two
-# cannot collapse onto one model if drafting is also moved to Gemini.
-GEMINI_FAST = os.environ.get("GROUNDSCORE_GEMINI_FAST", "gemini-3.5-flash-lite")
-GEMINI_JUDGE = os.environ.get("GROUNDSCORE_GEMINI_JUDGE", "gemini-3.1-flash-lite")
+# `_call_gemini`) so it stays a working escape hatch for when the 500/day lite
+# budget runs out -- GROUNDSCORE_GEMINI_JUDGE=gemma-4-31b-it -- but at ~15s a
+# call it is four times slower than the lite ids.
+GEMINI_FAST = os.environ.get("GROUNDSCORE_GEMINI_FAST", "gemini-3.1-flash-lite")
+GEMINI_JUDGE = os.environ.get("GROUNDSCORE_GEMINI_JUDGE", "gemini-3.5-flash-lite")
 
 # The self-preference probe re-scores with the DRAFTER's own model -- that is
 # the entire point of the probe -- so this tracks GEMINI_FAST rather than being
@@ -185,6 +197,9 @@ SERVING: dict[str, str] = {}
 PROVIDER_EVENTS: list[dict[str, Any]] = []
 
 
+CACHE_NOTE = "served from cache"
+
+
 def _note_serving(role: str, prov: str, concrete: str, problems: list[str]) -> None:
     previous = _pinned.get(role)
     if previous == prov:
@@ -199,12 +214,35 @@ def _note_serving(role: str, prov: str, concrete: str, problems: list[str]) -> N
               f"     reason: {event['reason']}\n"
               f"     This split is now scored by TWO different models. Results are\n"
               f"     tagged per row; do not pool them into one number.\n", flush=True)
+    elif problems and problems[-1] != CACHE_NOTE:
+        # The first call on this role already fell down the chain. There is no
+        # `previous`, so it is not a switch and it used to pass in silence --
+        # and a silently substituted judge is the one substitution this project
+        # cannot afford.
+        print(f"\n  !! role {role!r} is served by {prov}:{concrete}, not by the head\n"
+              f"     of its chain.\n"
+              f"     reason: {event['reason']}\n", flush=True)
 
 
 def provider_report() -> dict[str, Any]:
-    """Serving providers and any mid-run switches, for the results files."""
-    return {"serving": dict(SERVING), "switches":
-            [e for e in PROVIDER_EVENTS if e["previous"] is not None],
+    """Serving providers, mid-run switches, and degraded starts.
+
+    A switch is a role that changed provider part-way through a run: one split
+    scored by two models, which must not be pooled.
+
+    A degraded start is subtler, and it was invisible here until it bit. If the
+    FIRST call on a role fails over -- a dead judge key, Ollama not running --
+    there is no `previous` provider, so it is not a switch, and the run reads as
+    though the preferred provider served all along. The results file would say
+    `judge: ollama:gemma3:4b` with no hint that it asked for Gemini and got a
+    401. Recording the reason is what separates "I chose this judge" from "I got
+    this judge".
+    """
+    return {"serving": dict(SERVING),
+            "switches": [e for e in PROVIDER_EVENTS if e["previous"] is not None],
+            "degraded_starts": [e for e in PROVIDER_EVENTS
+                                if e["previous"] is None
+                                and e["reason"] not in ("first use", CACHE_NOTE)],
             "chains": {r: role_chain(r) for r in ("fast", "judge", "cross")},
             "live_calls": quota_report()}
 
@@ -507,7 +545,7 @@ def complete(
                 # Provenance matters on replay too: a cached split that was
                 # judged by two providers must still report as mixed, or
                 # `make reproduce` would launder it into a single clean number.
-                _note_serving(role, prov, concrete, ["served from cache"])
+                _note_serving(role, prov, concrete, [CACHE_NOTE])
             return cached
 
     shown = ", ".join(f"{p}:{m}" for p, m in candidates)

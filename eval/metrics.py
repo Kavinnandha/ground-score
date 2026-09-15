@@ -16,7 +16,7 @@ Design notes that matter for reading the results
    recall-style view (`escalation_miss_rate`) is reported alongside it, because
    the two diverge sharply when coverage is low.
 
-3. Every headline number carries a bootstrap CI. With a 120-example test split,
+3. Every headline number carries a bootstrap CI. With an 80-example test split,
    the CI is wide enough that most "improvements" under ~10 points are not
    distinguishable from noise, and the report says so rather than quietly
    reporting three significant figures.

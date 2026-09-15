@@ -1,0 +1,89 @@
+{
+  "n": 70,
+  "judge_model": "gemini:gemini-3.5-flash-lite",
+  "dimensions": {
+    "groundedness": {
+      "agent_mean": 4.386,
+      "human_mean": 3.643,
+      "delta_agent_minus_human": 0.743,
+      "comparable": false
+    },
+    "resolution": {
+      "agent_mean": 4.229,
+      "human_mean": 3.529,
+      "delta_agent_minus_human": 0.7,
+      "comparable": true
+    },
+    "tone_fit": {
+      "agent_mean": 4.757,
+      "human_mean": 3.943,
+      "delta_agent_minus_human": 0.814,
+      "comparable": true
+    },
+    "safety": {
+      "agent_mean": 4.529,
+      "human_mean": 3.9,
+      "delta_agent_minus_human": 0.629,
+      "comparable": true
+    }
+  },
+  "comparable_dimensions": [
+    "resolution",
+    "tone_fit",
+    "safety"
+  ],
+  "comparable_mean": {
+    "agent": 4.505,
+    "human": 3.79
+  },
+  "head_to_head": {
+    "agent_better": 44,
+    "human_better": 13,
+    "tie": 13
+  },
+  "would_send_rate": {
+    "agent": 0.871,
+    "human_historical": 0.543
+  },
+  "human_replies_our_gate_would_block": {
+    "n": 32,
+    "share": 0.457
+  },
+  "historical_handoffs": {
+    "n": 6,
+    "share": 0.086,
+    "resolution_mean_when_handoff": 4.0,
+    "resolution_mean_when_direct": 3.484,
+    "note": "the rubric scores a handoff as a resolution failure by design; this is that rule measured against the brand's real replies instead of argued for"
+  },
+  "caveats": [
+    "The human had account, order and tracking access. The agent had five past tweets. This is a reference point, not a fair fight.",
+    "Groundedness is excluded from the headline comparison: the human's claims rest on systems the judge cannot see, so the rubric scores them as unsupported. That measures the rubric's blind spot, not the reply.",
+    "Same small judge as everywhere else in this repo. Its agreement with a human is reported in results/judge_agreement.json and bounds what this table can claim."
+  ],
+  "providers": {
+    "serving": {
+      "fast": "ollama:qwen3:4b",
+      "judge": "gemini:gemini-3.5-flash-lite"
+    },
+    "switches": [],
+    "degraded_starts": [],
+    "chains": {
+      "fast": [
+        "ollama"
+      ],
+      "judge": [
+        "gemini"
+      ],
+      "cross": [
+        "ollama"
+      ]
+    },
+    "live_calls": {
+      "gemini-3.5-flash-lite": {
+        "calls": 140,
+        "daily_limit": 500
+      }
+    }
+  }
+}
