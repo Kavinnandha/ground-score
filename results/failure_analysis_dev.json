@@ -1,0 +1,765 @@
+{
+  "primary": {
+    "split": "dev",
+    "system": "agent",
+    "n": 70,
+    "n_auto": 31,
+    "false_auto": {
+      "n": 19,
+      "share_of_auto_sent": 0.613,
+      "by_gold_reason": {
+        "angry_or_distressed": 6,
+        "novel_no_precedent": 5,
+        "needs_account_access": 4,
+        "policy_exception_or_refund": 1,
+        "ambiguous_or_underspecified": 1,
+        "contains_personal_data": 1,
+        "safety_or_legal": 1
+      },
+      "intent_was_also_wrong": 10,
+      "gold_class_was_never_auto": 8,
+      "confidence_range": [
+        0.95,
+        0.95
+      ],
+      "rows": [
+        {
+          "thread_id": "530851",
+          "stratum": "adversarial",
+          "customer_msg": "amazon echo 楽しいー",
+          "gold_intent": "promotional_or_off_topic",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.8932,
+          "reply": "Amazon Echo が楽しいですね！ありがとうございます！^VM",
+          "gold_escalation_reason": "novel_no_precedent",
+          "annotator_confidence": 2,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "1955755",
+          "stratum": "adversarial",
+          "customer_msg": "Vai ter promoção do Kindle ???",
+          "gold_intent": "other",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7906,
+          "reply": "Olá! Vamos ver se tem promoção de Kindle em breve. Confira o link: <URL>",
+          "gold_escalation_reason": "novel_no_precedent",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": true
+        },
+        {
+          "thread_id": "1155367",
+          "stratum": "adversarial",
+          "customer_msg": "price highlighted 599 when being ordered it bcms 1499 !!! #DiwaliKiTayari #amazon #AmazonIN #AmazonGreatIndianFestival or loot ?? <URL>",
+          "gold_intent": "billing_charge_dispute",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7537,
+          "reply": "If you've replied to the email sent by our team, I'm sure our team will reach out to you soon with an update. ^VM",
+          "gold_escalation_reason": "needs_account_access",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": true
+        },
+        {
+          "thread_id": "1464242",
+          "stratum": "proportional",
+          "customer_msg": "so it's acceptable to send parcels with NO packaging now is it?! Well done for ruining Christmas presents! I'm so angry.",
+          "gold_intent": "item_damaged_or_packaging",
+          "pred_intent": "item_damaged_or_packaging",
+          "confidence": 0.95,
+          "max_similarity": 0.8738,
+          "reply": "Thanks for reaching out! To help us improve, please share if you'd like to return the item with additional packaging: <URL> ^KI",
+          "gold_escalation_reason": "angry_or_distressed",
+          "annotator_confidence": 3,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "2647266",
+          "stratum": "proportional",
+          "customer_msg": "Just had my first experience with Amazon's new delivery service and dear lord it's only a half-step up from the awful Lasership people they used to use",
+          "gold_intent": "service_complaint",
+          "pred_intent": "delivery_wrong_location",
+          "confidence": 0.95,
+          "max_similarity": 0.7618,
+          "reply": "I'm sorry to hear this! I'd like to have a member of my team look into this! Please submit your details here: <URL> ^ME",
+          "gold_escalation_reason": "angry_or_distressed",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": true
+        },
+        {
+          "thread_id": "1117987",
+          "stratum": "proportional",
+          "customer_msg": "Ahh but is it really coming today though #amazonprime ? My guaranteed next day delivery has been rattling in the back of a van since Friday <URL>",
+          "gold_intent": "delivery_late",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.8257,
+          "reply": "I'm very sorry your order hasn't arrived. Please let us know if you haven't received it by end of day tomorrow. ^JF",
+          "gold_escalation_reason": "needs_account_access",
+          "annotator_confidence": 2,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "2631456",
+          "stratum": "proportional",
+          "customer_msg": "#AmazonIndia I posted a review for bad service by amazon and Amazon denied to post it or Amazon India does not want any content in Indian language. <URL>",
+          "gold_intent": "other",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7865,
+          "reply": "We understand your concern about review visibility. Could you share the review link? We'll investigate this for you. ^AB",
+          "gold_escalation_reason": "novel_no_precedent",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": true
+        },
+        {
+          "thread_id": "13563",
+          "stratum": "proportional",
+          "customer_msg": "when do you guys charge for the Xbox one X I preordered? It ships the 6th.",
+          "gold_intent": "other",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.7859,
+          "reply": "We aim to process payments 24 hours after your order ships. Let me check your order status! ^RS",
+          "gold_escalation_reason": "novel_no_precedent",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": true
+        },
+        {
+          "thread_id": "520757",
+          "stratum": "proportional",
+          "customer_msg": "driver left my order from in front of a locked office building that definitely won’t be there in the morning. How dumb can you be?!",
+          "gold_intent": "delivery_wrong_location",
+          "pred_intent": "delivery_wrong_location",
+          "confidence": 0.95,
+          "max_similarity": 0.7501,
+          "reply": "I apologize for the poor delivery experience! Please contact us via phone or chat here: <URL> so that we may better assist you! *VF",
+          "gold_escalation_reason": "angry_or_distressed",
+          "annotator_confidence": 2,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "810732",
+          "stratum": "proportional",
+          "customer_msg": "So 8pm comes & goes & still no delivery from . I check on the website and it now says delivery expected btwn 12-18 Oct! Ar*eholes. <URL>",
+          "gold_intent": "delivery_late",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.8309,
+          "reply": "I'm sorry for the wait! What's the most recent tracking update: <URL> ^KB",
+          "gold_escalation_reason": "angry_or_distressed",
+          "annotator_confidence": 2,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "344359",
+          "stratum": "proportional",
+          "customer_msg": "Amazon Logistics has LOST my package, and I was only just told TODAY, 2 days AFTER it was supposed to be delivered. Unbelievable",
+          "gold_intent": "delivery_not_received",
+          "pred_intent": "delivery_not_received",
+          "confidence": 0.95,
+          "max_similarity": 0.859,
+          "reply": "Sorry for the frustration. Please provide your order details here: <URL> ^KB",
+          "gold_escalation_reason": "needs_account_access",
+          "annotator_confidence": 2,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "298989",
+          "stratum": "proportional",
+          "customer_msg": "WTH does delivery verification mean anymore? It's NOT on my porch. And tomorrow I'll watch the delivery person place it there. Like the last 2 times. <URL>",
+          "gold_intent": "delivery_not_received",
+          "pred_intent": "delivery_wrong_location",
+          "confidence": 0.95,
+          "max_similarity": 0.7548,
+          "reply": "I'm so sorry for the delivery trouble you've had. Can you please tell us who the carrier was?^HS",
+          "gold_escalation_reason": "angry_or_distressed",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "2446313",
+          "stratum": "proportional",
+          "customer_msg": "This week’s shenanigans: got someone else’s order almost entirely. Fulfillment is comically bad. Stuff has been missing or orders plain wrong Every. Single. Time. :')",
+          "gold_intent": "other",
+          "pred_intent": "delivery_not_received",
+          "confidence": 0.95,
+          "max_similarity": 0.7684,
+          "reply": "I'm so sorry about this, [Customer Name]! We'd love to help — when you check the order, what status is showing? You can check here: <URL> ^JY",
+          "gold_escalation_reason": "novel_no_precedent",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": true
+        },
+        {
+          "thread_id": "2036746",
+          "stratum": "proportional",
+          "customer_msg": "Why did I pay for one day shipping from and it takes 2 days?",
+          "gold_intent": "prime_guarantee_dispute",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.8765,
+          "reply": "I'm sorry for the wait! What delivery date was shown in your order confirmation email here: <URL> ^NS",
+          "gold_escalation_reason": "policy_exception_or_refund",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": true
+        },
+        {
+          "thread_id": "816343",
+          "stratum": "proportional",
+          "customer_msg": "#AmazonIndia <URL>",
+          "gold_intent": "promotional_or_off_topic",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.8801,
+          "reply": "We've responded to you here: <URL> Please click on the link for more information. ^KS",
+          "gold_escalation_reason": "ambiguous_or_underspecified",
+          "annotator_confidence": 1,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "420919",
+          "stratum": "rare",
+          "customer_msg": "very poor service provided by Amazon received my order at my location on 9th October only but still its not out for delivery. <URL>",
+          "gold_intent": "delivery_late",
+          "pred_intent": "delivery_not_received",
+          "confidence": 0.95,
+          "max_similarity": 0.8594,
+          "reply": "I'm sorry you haven't received your package yet. Could you confirm the details via the link below? ^SY",
+          "gold_escalation_reason": "contains_personal_data",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "386157",
+          "stratum": "rare",
+          "customer_msg": "How do I report fake emails like this to ?? <URL>",
+          "gold_intent": "account_access",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7525,
+          "reply": "You can report suspicious emails here: <URL> ^AT",
+          "gold_escalation_reason": "safety_or_legal",
+          "annotator_confidence": 2,
+          "intent_was_wrong": true,
+          "gold_class_is_never_auto": true
+        },
+        {
+          "thread_id": "881083",
+          "stratum": "rare",
+          "customer_msg": ", I want to return my latest purchased from mobile, unable to return your Biancco app says everything fine, even device isn't fine",
+          "gold_intent": "refund_or_return",
+          "pred_intent": "refund_or_return",
+          "confidence": 0.95,
+          "max_similarity": 0.8166,
+          "reply": "We apologize! Kindly elaborate your concern, we would like to help you. ^CB",
+          "gold_escalation_reason": "needs_account_access",
+          "annotator_confidence": 2,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        },
+        {
+          "thread_id": "793919",
+          "stratum": "rare",
+          "customer_msg": "Hey all the books I've ever ordered where damaged during delivery. I'm starting to get a bit pissed off about it.",
+          "gold_intent": "item_damaged_or_packaging",
+          "pred_intent": "item_damaged_or_packaging",
+          "confidence": 0.95,
+          "max_similarity": 0.8374,
+          "reply": "I'm sorry about the damage! You can view your available options here: <URL> ^SH",
+          "gold_escalation_reason": "angry_or_distressed",
+          "annotator_confidence": 2,
+          "intent_was_wrong": false,
+          "gold_class_is_never_auto": false
+        }
+      ]
+    },
+    "false_escalate": {
+      "n": 9,
+      "by_rule": {
+        "low_retrieval_similarity": 8,
+        "never_auto_intent": 1
+      },
+      "rows": [
+        {
+          "thread_id": "1710155",
+          "stratum": "adversarial",
+          "customer_msg": "Today we're celebrating Alexa's 3rd birthday. 🎂 🎁🎈 #HBDAlexa <URL>",
+          "gold_intent": "promotional_or_off_topic",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7271,
+          "reply": "Happy birthday to Alexa! 🎂 We're celebrating her 3rd birthday too. ^CB",
+          "triggered_rule": "low_retrieval_similarity"
+        },
+        {
+          "thread_id": "2750418",
+          "stratum": "proportional",
+          "customer_msg": "We tried Amazon Prime now delivery to our hotel in Orlando. <URL> <URL>",
+          "gold_intent": "promotional_or_off_topic",
+          "pred_intent": "delivery_not_received",
+          "confidence": 0.85,
+          "max_similarity": 0.7346,
+          "reply": "I'm sorry you haven't received your Prime delivery to Orlando. Could you share your order details here: <URL>? ^FJ",
+          "triggered_rule": "low_retrieval_similarity"
+        },
+        {
+          "thread_id": "73435",
+          "stratum": "proportional",
+          "customer_msg": "Bought a suit from with Santas face on it for my work Christmas do, but it's way too big for me. Won't be able to exchange it in time either since it'll take 5-7 business days and ",
+          "gold_intent": "refund_or_return",
+          "pred_intent": "other",
+          "confidence": 0.9,
+          "max_similarity": 0.6565,
+          "reply": "I'm sorry your suit isn't the right size! Can you share your order number so we check exchange options? ^EB",
+          "triggered_rule": "never_auto_intent"
+        },
+        {
+          "thread_id": "2687680",
+          "stratum": "proportional",
+          "customer_msg": "Dear /, why can't you ship Fire tablets to Slovenia? Having Amazon Prime doesn't help.",
+          "gold_intent": "device_or_digital_service",
+          "pred_intent": "device_or_digital_service",
+          "confidence": 0.95,
+          "max_similarity": 0.7132,
+          "reply": "I'm sorry for the confusion! For shipping to Slovenia, we recommend checking our international shipping options: <URL> ^MS",
+          "triggered_rule": "low_retrieval_similarity"
+        },
+        {
+          "thread_id": "2435218",
+          "stratum": "proportional",
+          "customer_msg": "ALL of the video streaming apps look like garbage on the new 2017 Fire TV.. I even restored to factory, and no difference.",
+          "gold_intent": "device_or_digital_service",
+          "pred_intent": "device_or_digital_service",
+          "confidence": 0.95,
+          "max_similarity": 0.7062,
+          "reply": "I'm sorry about the streaming issues! Have you tried restarting the Fire TV Stick? That often resolves app problems. ^AM",
+          "triggered_rule": "low_retrieval_similarity"
+        },
+        {
+          "thread_id": "810274",
+          "stratum": "proportional",
+          "customer_msg": "how are apps categorized as \"educational\" so they count against app time in kid mode on a fire tablet? seems random...",
+          "gold_intent": "device_or_digital_service",
+          "pred_intent": "device_or_digital_service",
+          "confidence": 0.95,
+          "max_similarity": 0.6476,
+          "reply": "We recommend checking the child profile settings to see how apps are categorized. For help, reach out via <URL> ^MB",
+          "triggered_rule": "low_retrieval_similarity"
+        },
+        {
+          "thread_id": "1212679",
+          "stratum": "rare",
+          "customer_msg": "Thanks I recycled your box into a Halloween costume. #halloween <URL>",
+          "gold_intent": "promotional_or_off_topic",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7262,
+          "reply": "Halloween fun! Thanks for repurposing your box 🎃 We love seeing creative reuse! ^MH",
+          "triggered_rule": "low_retrieval_similarity"
+        },
+        {
+          "thread_id": "421022",
+          "stratum": "rare",
+          "customer_msg": "Thank you team received cash back on purchase , you are awesome 👍👍",
+          "gold_intent": "promotional_or_off_topic",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7148,
+          "reply": "You're very welcome! We're glad to hear you're happy with your cash back. 😊",
+          "triggered_rule": "low_retrieval_similarity"
+        },
+        {
+          "thread_id": "2952285",
+          "stratum": "rare",
+          "customer_msg": "What I ordered vs what it came in. Literally a tiny fob watch. Slow clap You're wrong for the #environment. Do better! But thanks for making it recyclable at least. #Sustainability",
+          "gold_intent": "item_damaged_or_packaging",
+          "pred_intent": "item_damaged_or_packaging",
+          "confidence": 0.95,
+          "max_similarity": 0.7497,
+          "reply": "We're always looking for ways to improve, and providing packing feedback here will help: <URL> Thank you! ^FR",
+          "triggered_rule": "low_retrieval_similarity"
+        }
+      ]
+    },
+    "intent_errors": {
+      "n": 19,
+      "confusions": {
+        "other -> promotional_or_off_topic": 3,
+        "other -> delivery_late": 2,
+        "account_access -> promotional_or_off_topic": 2,
+        "delivery_not_received -> delivery_late": 1,
+        "billing_charge_dispute -> promotional_or_off_topic": 1,
+        "service_complaint -> delivery_wrong_location": 1,
+        "promotional_or_off_topic -> delivery_not_received": 1,
+        "device_or_digital_service -> promotional_or_off_topic": 1,
+        "refund_or_return -> other": 1,
+        "refund_or_return -> item_damaged_or_packaging": 1,
+        "delivery_not_received -> delivery_wrong_location": 1,
+        "other -> delivery_not_received": 1,
+        "prime_guarantee_dispute -> delivery_late": 1,
+        "promotional_or_off_topic -> other": 1,
+        "delivery_late -> delivery_not_received": 1
+      },
+      "lost_a_never_auto_guard": 11,
+      "rows": [
+        {
+          "thread_id": "2801398",
+          "stratum": "adversarial",
+          "customer_msg": ". hey guys i ordered an xbox 1 from you friday and i’m being told it delivered last night at 11pm but never received it?? why would someone deliver something like that at that time",
+          "gold_intent": "delivery_not_received",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.7873,
+          "reply": "I'm sorry for the delayed delivery. Can you share the latest tracking info? Check order status here: <URL> ^HS",
+          "cost": "harmless direction"
+        },
+        {
+          "thread_id": "135027",
+          "stratum": "adversarial",
+          "customer_msg": "why does your site say 12 Aug 2018 for Gary Barlow at Portsmouth Guildhall when the shows are 11 and 12 June????",
+          "gold_intent": "other",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7378,
+          "reply": "Pls reach out here so we can check this for you <URL> ^KM",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "1955755",
+          "stratum": "adversarial",
+          "customer_msg": "Vai ter promoção do Kindle ???",
+          "gold_intent": "other",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7906,
+          "reply": "Olá! Vamos ver se tem promoção de Kindle em breve. Confira o link: <URL>",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "1155367",
+          "stratum": "adversarial",
+          "customer_msg": "price highlighted 599 when being ordered it bcms 1499 !!! #DiwaliKiTayari #amazon #AmazonIN #AmazonGreatIndianFestival or loot ?? <URL>",
+          "gold_intent": "billing_charge_dispute",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7537,
+          "reply": "If you've replied to the email sent by our team, I'm sure our team will reach out to you soon with an update. ^VM",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "2647266",
+          "stratum": "proportional",
+          "customer_msg": "Just had my first experience with Amazon's new delivery service and dear lord it's only a half-step up from the awful Lasership people they used to use",
+          "gold_intent": "service_complaint",
+          "pred_intent": "delivery_wrong_location",
+          "confidence": 0.95,
+          "max_similarity": 0.7618,
+          "reply": "I'm sorry to hear this! I'd like to have a member of my team look into this! Please submit your details here: <URL> ^ME",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "2750418",
+          "stratum": "proportional",
+          "customer_msg": "We tried Amazon Prime now delivery to our hotel in Orlando. <URL> <URL>",
+          "gold_intent": "promotional_or_off_topic",
+          "pred_intent": "delivery_not_received",
+          "confidence": 0.85,
+          "max_similarity": 0.7346,
+          "reply": "I'm sorry you haven't received your Prime delivery to Orlando. Could you share your order details here: <URL>? ^FJ",
+          "cost": "harmless direction"
+        },
+        {
+          "thread_id": "1127114",
+          "stratum": "proportional",
+          "customer_msg": "No #Kannada eBooks or Kannada language support on Kindle. Disappointing! Cc: #ServeInMyLanguage",
+          "gold_intent": "device_or_digital_service",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.8465,
+          "reply": "We'll continue to add new content. I'll forward your feedback internally for review. ^NR",
+          "cost": "harmless direction"
+        },
+        {
+          "thread_id": "73435",
+          "stratum": "proportional",
+          "customer_msg": "Bought a suit from with Santas face on it for my work Christmas do, but it's way too big for me. Won't be able to exchange it in time either since it'll take 5-7 business days and ",
+          "gold_intent": "refund_or_return",
+          "pred_intent": "other",
+          "confidence": 0.9,
+          "max_similarity": 0.6565,
+          "reply": "I'm sorry your suit isn't the right size! Can you share your order number so we check exchange options? ^EB",
+          "cost": "harmless direction"
+        },
+        {
+          "thread_id": "2631456",
+          "stratum": "proportional",
+          "customer_msg": "#AmazonIndia I posted a review for bad service by amazon and Amazon denied to post it or Amazon India does not want any content in Indian language. <URL>",
+          "gold_intent": "other",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7865,
+          "reply": "We understand your concern about review visibility. Could you share the review link? We'll investigate this for you. ^AB",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "13563",
+          "stratum": "proportional",
+          "customer_msg": "when do you guys charge for the Xbox one X I preordered? It ships the 6th.",
+          "gold_intent": "other",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.7859,
+          "reply": "We aim to process payments 24 hours after your order ships. Let me check your order status! ^RS",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "573967",
+          "stratum": "proportional",
+          "customer_msg": "Hey, need a bit of help - can my latest order be shipped fast? Need it urgently for a training. Let me know the details you need.",
+          "gold_intent": "other",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.7167,
+          "reply": "We want to help! Could you share the most recent tracking update for your order? (No order details needed) ^MJ",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "2277545",
+          "stratum": "proportional",
+          "customer_msg": "do you guys randomly send emails to prime subscribers with a chance to win $50 by doing a survey?",
+          "gold_intent": "account_access",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7112,
+          "reply": "Thanks for reaching out! To check if this email is from Amazon, click here: <URL> ^AN",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "980798",
+          "stratum": "proportional",
+          "customer_msg": "LG Refrigerator return was picked up from home but packing material left behind and no receipt given. All good?",
+          "gold_intent": "refund_or_return",
+          "pred_intent": "item_damaged_or_packaging",
+          "confidence": 0.95,
+          "max_similarity": 0.6529,
+          "reply": "Sorry for the hassle. Please report this to our support team here: <URL> and we'll check this. ^HN",
+          "cost": "harmless direction"
+        },
+        {
+          "thread_id": "298989",
+          "stratum": "proportional",
+          "customer_msg": "WTH does delivery verification mean anymore? It's NOT on my porch. And tomorrow I'll watch the delivery person place it there. Like the last 2 times. <URL>",
+          "gold_intent": "delivery_not_received",
+          "pred_intent": "delivery_wrong_location",
+          "confidence": 0.95,
+          "max_similarity": 0.7548,
+          "reply": "I'm so sorry for the delivery trouble you've had. Can you please tell us who the carrier was?^HS",
+          "cost": "harmless direction"
+        },
+        {
+          "thread_id": "2446313",
+          "stratum": "proportional",
+          "customer_msg": "This week’s shenanigans: got someone else’s order almost entirely. Fulfillment is comically bad. Stuff has been missing or orders plain wrong Every. Single. Time. :')",
+          "gold_intent": "other",
+          "pred_intent": "delivery_not_received",
+          "confidence": 0.95,
+          "max_similarity": 0.7684,
+          "reply": "I'm so sorry about this, [Customer Name]! We'd love to help — when you check the order, what status is showing? You can check here: <URL> ^JY",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "2036746",
+          "stratum": "proportional",
+          "customer_msg": "Why did I pay for one day shipping from and it takes 2 days?",
+          "gold_intent": "prime_guarantee_dispute",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.8765,
+          "reply": "I'm sorry for the wait! What delivery date was shown in your order confirmation email here: <URL> ^NS",
+          "cost": "lost a never-auto guard"
+        },
+        {
+          "thread_id": "301501",
+          "stratum": "proportional",
+          "customer_msg": "finito #HarryPotterELaPietraFilosofale letto da Francesco Pannofino: tanta roba? Datemi gli altri capitoli ora",
+          "gold_intent": "promotional_or_off_topic",
+          "pred_intent": "other",
+          "confidence": 0.95,
+          "max_similarity": 0.6912,
+          "reply": "Thanks for sharing! For more Harry Potter books, check the Kindle store. ^GA",
+          "cost": "harmless direction"
+        },
+        {
+          "thread_id": "420919",
+          "stratum": "rare",
+          "customer_msg": "very poor service provided by Amazon received my order at my location on 9th October only but still its not out for delivery. <URL>",
+          "gold_intent": "delivery_late",
+          "pred_intent": "delivery_not_received",
+          "confidence": 0.95,
+          "max_similarity": 0.8594,
+          "reply": "I'm sorry you haven't received your package yet. Could you confirm the details via the link below? ^SY",
+          "cost": "harmless direction"
+        },
+        {
+          "thread_id": "386157",
+          "stratum": "rare",
+          "customer_msg": "How do I report fake emails like this to ?? <URL>",
+          "gold_intent": "account_access",
+          "pred_intent": "promotional_or_off_topic",
+          "confidence": 0.95,
+          "max_similarity": 0.7525,
+          "reply": "You can report suspicious emails here: <URL> ^AT",
+          "cost": "lost a never-auto guard"
+        }
+      ]
+    },
+    "draft_defects": {
+      "n": 7,
+      "by_type": {
+        "solicits_pii_publicly": 3,
+        "unfilled_placeholder": 2,
+        "name_carried_from_precedent": 2
+      },
+      "rows": [
+        {
+          "thread_id": "1723425",
+          "stratum": "adversarial",
+          "customer_msg": "Preordered Sonic Forces so we can get it today - Amazon said it's not even dispatched?! Wtf why do this to me >:(",
+          "gold_intent": "delivery_late",
+          "pred_intent": "delivery_late",
+          "confidence": 0.95,
+          "max_similarity": 0.7779,
+          "reply": "I'm sorry about the delay! Could you share the order confirmation email date? ^AN",
+          "defect": "solicits_pii_publicly",
+          "why": "asks the customer to post personal or order data on a public timeline, which is the thing the brand's own replies warn against"
+        },
+        {
+          "thread_id": "2113586",
+          "stratum": "proportional",
+          "customer_msg": "I pay for student prime and this is what I get? Your move Amazon. <URL>",
+          "gold_intent": "prime_guarantee_dispute",
+          "pred_intent": "prime_guarantee_dispute",
+          "confidence": 0.95,
+          "max_similarity": 0.7703,
+          "reply": "Hey! For student Prime, we ensure next-day delivery. Let's check your order status together. Please share your order ID: <URL> ^JE",
+          "defect": "solicits_pii_publicly",
+          "why": "asks the customer to post personal or order data on a public timeline, which is the thing the brand's own replies warn against"
+        },
+        {
+          "thread_id": "73435",
+          "stratum": "proportional",
+          "customer_msg": "Bought a suit from with Santas face on it for my work Christmas do, but it's way too big for me. Won't be able to exchange it in time either since it'll take 5-7 business days and ",
+          "gold_intent": "refund_or_return",
+          "pred_intent": "other",
+          "confidence": 0.9,
+          "max_similarity": 0.6565,
+          "reply": "I'm sorry your suit isn't the right size! Can you share your order number so we check exchange options? ^EB",
+          "defect": "solicits_pii_publicly",
+          "why": "asks the customer to post personal or order data on a public timeline, which is the thing the brand's own replies warn against"
+        },
+        {
+          "thread_id": "2446313",
+          "stratum": "proportional",
+          "customer_msg": "This week’s shenanigans: got someone else’s order almost entirely. Fulfillment is comically bad. Stuff has been missing or orders plain wrong Every. Single. Time. :')",
+          "gold_intent": "other",
+          "pred_intent": "delivery_not_received",
+          "confidence": 0.95,
+          "max_similarity": 0.7684,
+          "reply": "I'm so sorry about this, [Customer Name]! We'd love to help — when you check the order, what status is showing? You can check here: <URL> ^JY",
+          "defect": "unfilled_placeholder",
+          "why": "shipped a template placeholder instead of a value"
+        },
+        {
+          "thread_id": "455447",
+          "stratum": "rare",
+          "customer_msg": "I made a purchase yesterday and just received an email that I need to contact my bank because the payment couldn't process. It appears that the decimal point was dropped and the sy",
+          "gold_intent": "billing_charge_dispute",
+          "pred_intent": "billing_charge_dispute",
+          "confidence": 0.95,
+          "max_similarity": 0.6894,
+          "reply": "Hi, what's the amount of the charge & what's written next to it on your statement? ^TS",
+          "defect": "name_carried_from_precedent",
+          "why": "greets this customer as 'what', a name that appears only in the precedent thread"
+        },
+        {
+          "thread_id": "1133538",
+          "stratum": "rare",
+          "customer_msg": "how do I get the e-book of a actual book I bought onto my kindle app?",
+          "gold_intent": "device_or_digital_service",
+          "pred_intent": "device_or_digital_service",
+          "confidence": 0.95,
+          "max_similarity": 0.7711,
+          "reply": "Hey, can you check if the e-book is available in your Kindle app? You may need to refresh the app or check your account settings. ^CS",
+          "defect": "name_carried_from_precedent",
+          "why": "greets this customer as 'can', a name that appears only in the precedent thread"
+        },
+        {
+          "thread_id": "2843794",
+          "stratum": "rare",
+          "customer_msg": "every time I try and log in I get this screen. Please note this is not the incorrect password screen. <URL>",
+          "gold_intent": "account_access",
+          "pred_intent": "account_access",
+          "confidence": 0.95,
+          "max_similarity": 0.7789,
+          "reply": "I'm sorry for the trouble, [Customer Name]! Have you tried the troubleshooting tips listed here? <URL> ^LA",
+          "defect": "unfilled_placeholder",
+          "why": "shipped a template placeholder instead of a value"
+        }
+      ]
+    },
+    "escalation_rules_fired": {
+      "llm_judgement": 31,
+      "never_auto_intent": 18,
+      "low_retrieval_similarity": 17,
+      "pii_payment_card": 3,
+      "account_compromise": 1
+    }
+  },
+  "draft_defects_by_system": {
+    "agent": {
+      "n": 7,
+      "by_type": {
+        "solicits_pii_publicly": 3,
+        "unfilled_placeholder": 2,
+        "name_carried_from_precedent": 2
+      }
+    },
+    "agent_no_retrieval": {
+      "n": 45,
+      "by_type": {
+        "solicits_pii_publicly": 32,
+        "unsupported_time_commitment": 7,
+        "unfilled_placeholder": 4,
+        "internal_routing_leak": 2
+      }
+    },
+    "simple_tfidf_nn": {
+      "n": 10,
+      "by_type": {
+        "name_carried_from_precedent": 10
+      }
+    },
+    "trivial_always_auto": {
+      "n": 0,
+      "by_type": {}
+    }
+  }
+}

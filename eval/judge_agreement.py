@@ -2,9 +2,12 @@
 
 The assignment asks for evidence, so this produces four things:
 
-  1. Agreement    Spearman rho per dimension against blind human scores, and
-                  quadratic-weighted kappa on the would_send gate -- the gate
+  1. Agreement    Spearman rho per dimension against blind reference scores,
+                  and quadratic-weighted kappa on the would_send gate -- the gate
                   matters most because it is the judgement routing depends on.
+                  The shipped reference scores were written by the project
+                  author before judge output was available, so this is
+                  judge-versus-human agreement.
   2. Bias         mean(judge - human) per dimension. A judge that correlates
                   well but sits a full point high still misreports absolute
                   quality, and the headline reply score would inherit that.
@@ -16,9 +19,9 @@ The assignment asks for evidence, so this produces four things:
                   self-preference. `same_vendor_as_drafter` says whether it is
                   a discount to apply or a cross-vendor sanity check.
 
-Ordering is enforced: human scores must already exist on disk before this runs.
-That is what makes them blind -- they cannot have been anchored to judge output
-that had not been produced yet.
+Ordering is enforced: reference scores must already exist on disk before this
+runs. That is what makes them blind -- they cannot have been anchored to judge
+output that had not been produced yet.
 """
 
 from __future__ import annotations

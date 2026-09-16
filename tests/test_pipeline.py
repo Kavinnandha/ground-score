@@ -185,6 +185,60 @@ def test_hard_rules_beat_high_confidence():
     assert decision.triggered_rule == "account_compromise"
 
 
+def test_kappa_is_a_number_for_numeric_raters_not_silently_nan():
+    """The judge-validation headline is a kappa over 1-5 scores and booleans.
+
+    It was NaN for every run: the arrays were built with dtype=object, sklearn
+    reports that as target type "unknown" and raises, and the `except` turned
+    the raise into NaN under a comment blaming a degenerate rater. Only the
+    string-valued kappas (intent, action) ever worked. Asserting an actual value
+    here is what stops that from being invisible again.
+    """
+    from eval import metrics
+
+    ordinal = metrics.agreement([1, 2, 3, 4, 5, 1, 2], [1, 2, 3, 5, 5, 2, 2],
+                                weights="quadratic")
+    assert ordinal["cohen_kappa"] == ordinal["cohen_kappa"], "ordinal kappa came back NaN"
+    assert 0.0 < ordinal["cohen_kappa"] <= 1.0
+
+    gate = metrics.agreement([True, False, True, False, True],
+                             [True, True, True, False, True])
+    assert gate["cohen_kappa"] == gate["cohen_kappa"], "boolean kappa came back NaN"
+
+    nominal = metrics.agreement(["delivery_late", "other", "delivery_late"],
+                                ["delivery_late", "other", "other"])
+    assert nominal["cohen_kappa"] == nominal["cohen_kappa"]
+
+    # Genuinely undefined stays NaN, but now says why instead of guessing.
+    degenerate = metrics.agreement([True, True, True], [True, True, True])
+    assert degenerate["cohen_kappa"] != degenerate["cohen_kappa"]
+    assert "note" in degenerate
+
+
+def test_safety_rule_does_not_fire_on_the_brands_own_product_line():
+    """Amazon's device line is called Fire, so a bare \\bfire\\b is a keyword trap.
+
+    Before this was tightened it matched 92 of the 103 corpus messages
+    containing "fire" and escalated three ordinary device questions on the dev
+    split as safety incidents. Both directions are asserted, because the fix is
+    only correct if it still catches an actual fire.
+    """
+    for benign in ("why can't you ship Fire tablets to Slovenia?",
+                   "the streaming apps look terrible on the new 2017 Fire TV",
+                   "how does kid mode categorise apps on a fire tablet?",
+                   "sellers are burning the midnight oil for Diwali"):
+        assert route.match_hard_escalation(benign) is None, benign
+
+    for harmful in ("my kindle caught fire while charging",
+                    "this charger is a fire hazard",
+                    "the battery burst into flames",
+                    "the power brick was on fire",
+                    "it burned my hand when I unplugged it",
+                    "my child was injured by the packaging",
+                    "I ended up in hospital because of this"):
+        assert route.match_hard_escalation(harmful) == "safety_or_harm", harmful
+
+
 @requires_taxonomy
 def test_pii_forces_escalation():
     decision = route.route("u charged my card 4111 1111 1111 1111 twice for 1 order??",

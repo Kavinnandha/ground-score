@@ -194,10 +194,10 @@ def main() -> int:
     parser.add_argument("--no-llm", action="store_true", help="baselines only (no API calls)")
     parser.add_argument(
         "--judge-systems", default="",
-        help="comma-separated systems to judge. Default: 'agent' on dev (enough to "
-             "validate the judge against a human), all systems on test (the headline "
-             "comparison). Judging every system on both splits is ~600 calls, which at "
-             "the free tier's ~5 RPM is 2+ hours for no extra information.")
+        help="comma-separated systems to judge; default 'agent' on both splits. "
+             "Name them all to compare reply quality across systems -- worth doing "
+             "on dev, where the blind reference scores live. Judging every system "
+             "on both splits is ~600 hosted calls against a 500/day free tier.")
     args = parser.parse_args()
 
     if args.split == "test" and not args.final:
@@ -261,8 +261,20 @@ def main() -> int:
         canonical = {o["thread_id"]: o.get("exemplars", [])
                      for o in all_outputs.get("agent", [])}
 
-        judge_systems = args.judge_systems.split(",") if args.judge_systems else (
-            ["agent"] if args.split == "dev" else list(all_outputs))
+        # Judging defaults to the agent alone, on BOTH splits, and that is a
+        # budget decision stated rather than hidden. A judged system costs one
+        # hosted call per row; the free tier meters 500 per day per model, and
+        # judging all four systems on both splits is ~600. Cross-system reply
+        # quality is measured on DEV, where the blind reference scores live and
+        # where all four systems are judged explicitly
+        # (`--judge-systems a,b,c`). The test split exists to measure routing
+        # and intent on held-out rows, neither of which needs a judge.
+        #
+        # This used to default to every system on test, which meant `make
+        # eval-test` either blew the daily quota or fell back mid-run onto a
+        # second judge model -- and a split scored half by one model and half by
+        # another cannot carry a headline number.
+        judge_systems = args.judge_systems.split(",") if args.judge_systems else ["agent"]
 
         for name, outputs in all_outputs.items():
             if name == "trivial_always_escalate":

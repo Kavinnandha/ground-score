@@ -60,7 +60,7 @@ def main() -> int:
         # Spanish, French, German and Portuguese are all Latin-script, and
         # clustering the corpus without this filter produced four clusters that
         # were languages rather than intents. Multilingual support is explicitly
-        # out of scope (see REPORT.md), so this traffic is removed rather than
+        # out of scope (see docs/ground-score-report.pdf), so this traffic is removed rather than
         # served badly.
         if not is_probably_english(msg):
             dropped["not_english"] += 1

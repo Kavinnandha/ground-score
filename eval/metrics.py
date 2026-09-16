@@ -253,7 +253,13 @@ def best_threshold(curve: Sequence[dict], max_false_auto: float) -> dict | None:
     Tuned on the dev split only; the chosen value is frozen into
     configs/thresholds.yaml before the test split is ever scored.
     """
-    feasible = [p for p in curve if p["false_auto_rate"] <= max_false_auto]
+    # n_auto == 0 is not an operating point. Its false-auto rate is defined as
+    # 0.0 for want of a denominator, so leaving it in makes "automate nothing"
+    # look feasible under every budget and hides the case this function exists
+    # to surface: that no threshold meets the budget at all. Returning None is
+    # the honest answer there, and the caller says so.
+    feasible = [p for p in curve
+                if p["n_auto"] > 0 and p["false_auto_rate"] <= max_false_auto]
     return max(feasible, key=lambda p: p["coverage"]) if feasible else None
 
 
@@ -269,11 +275,42 @@ def agreement(a: Sequence, b: Sequence, *, weights: str | None = None) -> dict:
     """
     a_arr, b_arr = np.asarray(a, dtype=object), np.asarray(b, dtype=object)
     raw = float((a_arr == b_arr).mean()) if len(a_arr) else float("nan")
-    try:
-        kappa = float(cohen_kappa_score(a_arr, b_arr, weights=weights))
-    except ValueError:
-        kappa = float("nan")  # degenerate: one rater used a single class
-    return {"raw_agreement": raw, "cohen_kappa": kappa, "n": len(a_arr), "weights": weights}
+
+    # dtype=object is right for raw agreement -- it compares ints, strings and
+    # bools alike -- and WRONG for sklearn, whose target-type inference reports
+    # an object array as "unknown" and raises on every call. That turned every
+    # numeric kappa in this repo into NaN, under an `except` that blamed a
+    # degenerate rater. The intent/action kappas survived only because their
+    # values are strings, which sklearn re-infers.
+    #
+    # So the array handed to sklearn carries a real dtype: ints for numeric
+    # scales (so quadratic weights mean what they should), strings for nominal
+    # labels. Booleans go to int, not str, because "would you send this" is the
+    # gate the report leans on and it must not silently fall into the nominal
+    # path.
+    def _typed(arr: np.ndarray) -> np.ndarray:
+        if all(isinstance(v, (bool, np.bool_, int, np.integer)) for v in arr):
+            return arr.astype(int)
+        if all(isinstance(v, (float, np.floating)) for v in arr):
+            return arr.astype(float)
+        return arr.astype(str)
+
+    kappa, note = float("nan"), None
+    if len(a_arr):
+        try:
+            kappa = float(cohen_kappa_score(_typed(a_arr), _typed(b_arr), weights=weights))
+        except ValueError as exc:
+            note = f"kappa undefined: {exc}"
+        if kappa != kappa and note is None:
+            # sklearn returns NaN rather than raising when both raters used one
+            # class and agreed: chance agreement is 1, so kappa is 0/0.
+            note = ("kappa undefined: both raters used a single class, so expected "
+                    "agreement is 1 and the coefficient is 0/0")
+
+    out = {"raw_agreement": raw, "cohen_kappa": kappa, "n": len(a_arr), "weights": weights}
+    if note:
+        out["note"] = note
+    return out
 
 
 def correlation(a: Sequence[float], b: Sequence[float]) -> dict:

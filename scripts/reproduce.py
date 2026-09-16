@@ -29,14 +29,33 @@ REQUIRED = [
     ("cache/llm_cache.sqlite", "LLM cache", "make full"),
     ("taxonomy/intents.yaml", "intent taxonomy", "python -m groundscore.discover_intents"),
     ("data/golden/golden_v1.jsonl", "golden set", "python tools/label_cli.py"),
-    ("configs/thresholds.yaml", "tuned thresholds", "python eval/tune_thresholds.py"),
+    ("data/golden/golden_v1_relabel.jsonl", "blind second pass",
+     "python tools/second_annotator.py"),
+    ("data/golden/human_reply_scores.jsonl", "blind reply scores",
+     "python tools/score_replies_cli.py --split dev"),
+    ("configs/thresholds.yaml", "frozen thresholds", "python eval/tune_thresholds.py"),
 ]
 
+# Ordered. The evaluations have to precede anything that reads their outputs,
+# and the last two make no model calls at all -- they are pure functions of
+# files this script has just regenerated, which is why they can sit inside a run
+# that has the API key stripped out of its environment.
 STEPS = [
-    ("dev evaluation", [sys.executable, "eval/run_eval.py", "--split", "dev"]),
+    # All four reply-producing systems are judged on dev, named explicitly
+    # rather than left to the default, so this run regenerates every judge file
+    # the agreement statistic pairs on instead of inheriting three of them from
+    # the commit. Every one of these calls is in the committed cache; the
+    # default is narrower only to keep a LIVE `make eval` inside the daily
+    # hosted budget (DECISIONS.md #42).
+    ("dev evaluation", [sys.executable, "eval/run_eval.py", "--split", "dev",
+                        "--judge-systems",
+                        "agent,agent_no_retrieval,simple_tfidf_nn,trivial_always_auto"]),
     ("test evaluation", [sys.executable, "eval/run_eval.py", "--split", "test", "--final"]),
     ("judge validation", [sys.executable, "eval/judge_agreement.py", "--split", "dev",
                           "--skip-probes"]),
+    ("label agreement", [sys.executable, "eval/label_agreement.py"]),
+    ("failure analysis", [sys.executable, "eval/failure_analysis.py", "--split", "dev",
+                          "--all-systems"]),
 ]
 
 
@@ -84,9 +103,31 @@ def main() -> int:
     if agreement.exists():
         report = json.loads(agreement.read_text(encoding="utf-8"))
         gate = report.get("would_send", {})
-        print(f"\n## judge vs human (n={report.get('n_paired')})")
+        # The reference scores were written by the project author before judge
+        # output was available, so this is judge-versus-human validation.
+        print(f"\n## judge vs reference annotator (n={report.get('n_paired')})")
         print(f"would_send kappa {gate.get('cohen_kappa', float('nan')):+.3f}   "
               f"raw agreement {gate.get('raw_agreement', float('nan')):.3f}")
+
+    labels = ROOT / "results" / "label_agreement.json"
+    if labels.exists():
+        report = json.loads(labels.read_text(encoding="utf-8"))
+        rates = report["action_base_rates"]
+        print(f"\n## label agreement ({report.get('kind')}, n={report.get('n')})")
+        print(f"intent kappa {report['intent']['cohen_kappa']:+.3f}   "
+              f"action kappa {report['action']['cohen_kappa']:+.3f} "
+              f"(escalate rates {rates['pass_1_escalate']:.0%} vs "
+              f"{rates['pass_2_escalate']:.0%})")
+
+    failures = ROOT / "results" / "failure_analysis_dev.json"
+    if failures.exists():
+        primary = json.loads(failures.read_text(encoding="utf-8"))["primary"]
+        fa = primary["false_auto"]
+        print("\n## failure modes (dev, agent)")
+        print(f"false-auto {fa['n']}/{primary['n_auto']} auto-sent "
+              f"({fa['share_of_auto_sent']:.1%})   "
+              f"false-escalate {primary['false_escalate']['n']}   "
+              f"draft defects {primary['draft_defects']['n']}")
 
     print(f"\ntotal wall clock: {elapsed / 60:.1f} min")
     return 0

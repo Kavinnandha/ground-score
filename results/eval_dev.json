@@ -1,0 +1,2364 @@
+{
+  "split": "dev",
+  "results": {
+    "trivial_always_auto": {
+      "n": 70,
+      "intent": {
+        "accuracy": {
+          "value": 0.17142857142857143,
+          "ci95": [
+            0.08571428571428572,
+            0.2571428571428571
+          ],
+          "n": 70
+        },
+        "macro_f1": {
+          "value": 0.024390243902439022,
+          "ci95": [
+            0.013157894736842105,
+            0.034090909090909095
+          ],
+          "n": 70
+        },
+        "per_class": {
+          "account_access": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 5
+          },
+          "billing_charge_dispute": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 5
+          },
+          "delivery_late": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 6
+          },
+          "delivery_not_received": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 4
+          },
+          "delivery_wrong_location": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 2
+          },
+          "device_or_digital_service": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 6
+          },
+          "item_damaged_or_packaging": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 7
+          },
+          "other": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 8
+          },
+          "prime_guarantee_dispute": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 4
+          },
+          "promotional_or_off_topic": {
+            "precision": 0.17142857142857143,
+            "recall": 1.0,
+            "f1": 0.2926829268292683,
+            "support": 12
+          },
+          "refund_or_return": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 5
+          },
+          "service_complaint": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 6
+          }
+        },
+        "confusion_matrix": [
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            7,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            8,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            12,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0
+          ]
+        ],
+        "labels": [
+          "account_access",
+          "billing_charge_dispute",
+          "delivery_late",
+          "delivery_not_received",
+          "delivery_wrong_location",
+          "device_or_digital_service",
+          "item_damaged_or_packaging",
+          "other",
+          "prime_guarantee_dispute",
+          "promotional_or_off_topic",
+          "refund_or_return",
+          "service_complaint"
+        ]
+      },
+      "routing": {
+        "coverage": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "n": 70
+        },
+        "false_auto_rate": {
+          "value": 0.7,
+          "ci95": [
+            0.5857142857142857,
+            0.8
+          ],
+          "n": 70
+        },
+        "escalation_miss_rate": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "n": 70
+        },
+        "escalation_precision": 0.0,
+        "escalation_recall": 0.0,
+        "counts": {
+          "escalate_correct": 0,
+          "escalate_unnecessary": 0,
+          "auto_but_should_escalate": 49,
+          "auto_correct": 21,
+          "n": 70
+        }
+      },
+      "escalation_rules": {},
+      "per_stratum": {
+        "adversarial": {
+          "n": 11,
+          "intent_accuracy": {
+            "value": 0.36363636363636365,
+            "ci95": [
+              0.09090909090909091,
+              0.6363636363636364
+            ],
+            "n": 11
+          },
+          "routing": {
+            "coverage": {
+              "value": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 11
+            },
+            "false_auto_rate": {
+              "value": 0.6363636363636364,
+              "ci95": [
+                0.36363636363636365,
+                0.9090909090909091
+              ],
+              "n": 11
+            },
+            "escalation_miss_rate": {
+              "value": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 11
+            },
+            "escalation_precision": 0.0,
+            "escalation_recall": 0.0,
+            "counts": {
+              "escalate_correct": 0,
+              "escalate_unnecessary": 0,
+              "auto_but_should_escalate": 7,
+              "auto_correct": 4,
+              "n": 11
+            }
+          }
+        },
+        "proportional": {
+          "n": 39,
+          "intent_accuracy": {
+            "value": 0.1282051282051282,
+            "ci95": [
+              0.02564102564102564,
+              0.23076923076923078
+            ],
+            "n": 39
+          },
+          "routing": {
+            "coverage": {
+              "value": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 39
+            },
+            "false_auto_rate": {
+              "value": 0.717948717948718,
+              "ci95": [
+                0.5641025641025641,
+                0.8461538461538461
+              ],
+              "n": 39
+            },
+            "escalation_miss_rate": {
+              "value": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 39
+            },
+            "escalation_precision": 0.0,
+            "escalation_recall": 0.0,
+            "counts": {
+              "escalate_correct": 0,
+              "escalate_unnecessary": 0,
+              "auto_but_should_escalate": 28,
+              "auto_correct": 11,
+              "n": 39
+            }
+          }
+        },
+        "rare": {
+          "n": 20,
+          "intent_accuracy": {
+            "value": 0.15,
+            "ci95": [
+              0.0,
+              0.3
+            ],
+            "n": 20
+          },
+          "routing": {
+            "coverage": {
+              "value": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 20
+            },
+            "false_auto_rate": {
+              "value": 0.7,
+              "ci95": [
+                0.5,
+                0.9
+              ],
+              "n": 20
+            },
+            "escalation_miss_rate": {
+              "value": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 20
+            },
+            "escalation_precision": 0.0,
+            "escalation_recall": 0.0,
+            "counts": {
+              "escalate_correct": 0,
+              "escalate_unnecessary": 0,
+              "auto_but_should_escalate": 14,
+              "auto_correct": 6,
+              "n": 20
+            }
+          }
+        }
+      },
+      "judge": {
+        "mean_score": 3.868,
+        "would_send_rate": 0.529,
+        "groundedness": 4.143,
+        "resolution": 3.114,
+        "tone_fit": 3.743,
+        "safety": 4.471
+      }
+    },
+    "trivial_always_escalate": {
+      "n": 70,
+      "intent": {
+        "accuracy": {
+          "value": 0.17142857142857143,
+          "ci95": [
+            0.08571428571428572,
+            0.2571428571428571
+          ],
+          "n": 70
+        },
+        "macro_f1": {
+          "value": 0.024390243902439022,
+          "ci95": [
+            0.013157894736842105,
+            0.034090909090909095
+          ],
+          "n": 70
+        },
+        "per_class": {
+          "account_access": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 5
+          },
+          "billing_charge_dispute": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 5
+          },
+          "delivery_late": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 6
+          },
+          "delivery_not_received": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 4
+          },
+          "delivery_wrong_location": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 2
+          },
+          "device_or_digital_service": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 6
+          },
+          "item_damaged_or_packaging": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 7
+          },
+          "other": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 8
+          },
+          "prime_guarantee_dispute": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 4
+          },
+          "promotional_or_off_topic": {
+            "precision": 0.17142857142857143,
+            "recall": 1.0,
+            "f1": 0.2926829268292683,
+            "support": 12
+          },
+          "refund_or_return": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 5
+          },
+          "service_complaint": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 6
+          }
+        },
+        "confusion_matrix": [
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            7,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            8,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            12,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0
+          ]
+        ],
+        "labels": [
+          "account_access",
+          "billing_charge_dispute",
+          "delivery_late",
+          "delivery_not_received",
+          "delivery_wrong_location",
+          "device_or_digital_service",
+          "item_damaged_or_packaging",
+          "other",
+          "prime_guarantee_dispute",
+          "promotional_or_off_topic",
+          "refund_or_return",
+          "service_complaint"
+        ]
+      },
+      "routing": {
+        "coverage": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "false_auto_rate": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "escalation_miss_rate": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "escalation_precision": 0.7,
+        "escalation_recall": 1.0,
+        "counts": {
+          "escalate_correct": 49,
+          "escalate_unnecessary": 21,
+          "auto_but_should_escalate": 0,
+          "auto_correct": 0,
+          "n": 70
+        }
+      },
+      "escalation_rules": {
+        "fixed_policy": 70
+      },
+      "per_stratum": {
+        "adversarial": {
+          "n": 11,
+          "intent_accuracy": {
+            "value": 0.36363636363636365,
+            "ci95": [
+              0.09090909090909091,
+              0.6363636363636364
+            ],
+            "n": 11
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "escalation_precision": 0.6363636363636364,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 7,
+              "escalate_unnecessary": 4,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 11
+            }
+          }
+        },
+        "proportional": {
+          "n": 39,
+          "intent_accuracy": {
+            "value": 0.1282051282051282,
+            "ci95": [
+              0.02564102564102564,
+              0.23076923076923078
+            ],
+            "n": 39
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "escalation_precision": 0.717948717948718,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 28,
+              "escalate_unnecessary": 11,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 39
+            }
+          }
+        },
+        "rare": {
+          "n": 20,
+          "intent_accuracy": {
+            "value": 0.15,
+            "ci95": [
+              0.0,
+              0.3
+            ],
+            "n": 20
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "escalation_precision": 0.7,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 14,
+              "escalate_unnecessary": 6,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 20
+            }
+          }
+        }
+      },
+      "routing_note": "escalates every example; routing metrics are degenerate by construction"
+    },
+    "simple_tfidf_nn": {
+      "n": 70,
+      "intent": {
+        "accuracy": {
+          "value": 0.3142857142857143,
+          "ci95": [
+            0.21428571428571427,
+            0.42857142857142855
+          ],
+          "n": 70
+        },
+        "macro_f1": {
+          "value": 0.2504495155550143,
+          "ci95": [
+            0.1582610662353258,
+            0.32787249685227626
+          ],
+          "n": 70
+        },
+        "per_class": {
+          "account_access": {
+            "precision": 0.4444444444444444,
+            "recall": 0.8,
+            "f1": 0.5714285714285714,
+            "support": 5
+          },
+          "billing_charge_dispute": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 5
+          },
+          "delivery_late": {
+            "precision": 0.18181818181818182,
+            "recall": 0.3333333333333333,
+            "f1": 0.23529411764705882,
+            "support": 6
+          },
+          "delivery_not_received": {
+            "precision": 0.25,
+            "recall": 0.25,
+            "f1": 0.25,
+            "support": 4
+          },
+          "delivery_wrong_location": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 2
+          },
+          "device_or_digital_service": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 6
+          },
+          "item_damaged_or_packaging": {
+            "precision": 0.5555555555555556,
+            "recall": 0.7142857142857143,
+            "f1": 0.625,
+            "support": 7
+          },
+          "other": {
+            "precision": 0.2,
+            "recall": 0.25,
+            "f1": 0.2222222222222222,
+            "support": 8
+          },
+          "prime_guarantee_dispute": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 4
+          },
+          "promotional_or_off_topic": {
+            "precision": 0.45454545454545453,
+            "recall": 0.4166666666666667,
+            "f1": 0.43478260869565216,
+            "support": 12
+          },
+          "refund_or_return": {
+            "precision": 0.25,
+            "recall": 0.2,
+            "f1": 0.2222222222222222,
+            "support": 5
+          },
+          "service_complaint": {
+            "precision": 0.6666666666666666,
+            "recall": 0.3333333333333333,
+            "f1": 0.4444444444444444,
+            "support": 6
+          }
+        },
+        "confusion_matrix": [
+          [
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            3,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            2,
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            2,
+            1,
+            0,
+            1,
+            2,
+            0,
+            0,
+            5,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            2
+          ]
+        ],
+        "labels": [
+          "account_access",
+          "billing_charge_dispute",
+          "delivery_late",
+          "delivery_not_received",
+          "delivery_wrong_location",
+          "device_or_digital_service",
+          "item_damaged_or_packaging",
+          "other",
+          "prime_guarantee_dispute",
+          "promotional_or_off_topic",
+          "refund_or_return",
+          "service_complaint"
+        ]
+      },
+      "routing": {
+        "coverage": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "false_auto_rate": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "escalation_miss_rate": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "escalation_precision": 0.7,
+        "escalation_recall": 1.0,
+        "counts": {
+          "escalate_correct": 49,
+          "escalate_unnecessary": 21,
+          "auto_but_should_escalate": 0,
+          "auto_correct": 0,
+          "n": 70
+        }
+      },
+      "escalation_rules": {
+        "low_confidence": 24,
+        "never_auto_intent": 26,
+        "low_retrieval_similarity": 16,
+        "pii_payment_card": 3,
+        "account_compromise": 1
+      },
+      "per_stratum": {
+        "adversarial": {
+          "n": 11,
+          "intent_accuracy": {
+            "value": 0.2727272727272727,
+            "ci95": [
+              0.09090909090909091,
+              0.5454545454545454
+            ],
+            "n": 11
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "escalation_precision": 0.6363636363636364,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 7,
+              "escalate_unnecessary": 4,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 11
+            }
+          }
+        },
+        "proportional": {
+          "n": 39,
+          "intent_accuracy": {
+            "value": 0.23076923076923078,
+            "ci95": [
+              0.10256410256410256,
+              0.358974358974359
+            ],
+            "n": 39
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "escalation_precision": 0.717948717948718,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 28,
+              "escalate_unnecessary": 11,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 39
+            }
+          }
+        },
+        "rare": {
+          "n": 20,
+          "intent_accuracy": {
+            "value": 0.5,
+            "ci95": [
+              0.3,
+              0.7
+            ],
+            "n": 20
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "escalation_precision": 0.7,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 14,
+              "escalate_unnecessary": 6,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 20
+            }
+          }
+        }
+      },
+      "routing_note": "escalates every example; routing metrics are degenerate by construction",
+      "judge": {
+        "mean_score": 3.95,
+        "would_send_rate": 0.529,
+        "groundedness": 3.686,
+        "resolution": 3.814,
+        "tone_fit": 4.257,
+        "safety": 4.043
+      }
+    },
+    "agent_no_retrieval": {
+      "n": 70,
+      "intent": {
+        "accuracy": {
+          "value": 0.7,
+          "ci95": [
+            0.6,
+            0.8
+          ],
+          "n": 70
+        },
+        "macro_f1": {
+          "value": 0.7201540969923322,
+          "ci95": [
+            0.556321034594061,
+            0.8041516530854766
+          ],
+          "n": 70
+        },
+        "per_class": {
+          "account_access": {
+            "precision": 1.0,
+            "recall": 0.6,
+            "f1": 0.75,
+            "support": 5
+          },
+          "billing_charge_dispute": {
+            "precision": 1.0,
+            "recall": 0.8,
+            "f1": 0.8888888888888888,
+            "support": 5
+          },
+          "delivery_late": {
+            "precision": 0.5454545454545454,
+            "recall": 1.0,
+            "f1": 0.7058823529411765,
+            "support": 6
+          },
+          "delivery_not_received": {
+            "precision": 0.6666666666666666,
+            "recall": 0.5,
+            "f1": 0.5714285714285714,
+            "support": 4
+          },
+          "delivery_wrong_location": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 2
+          },
+          "device_or_digital_service": {
+            "precision": 1.0,
+            "recall": 0.8333333333333334,
+            "f1": 0.9090909090909091,
+            "support": 6
+          },
+          "item_damaged_or_packaging": {
+            "precision": 0.8571428571428571,
+            "recall": 0.8571428571428571,
+            "f1": 0.8571428571428571,
+            "support": 7
+          },
+          "other": {
+            "precision": 0.375,
+            "recall": 0.375,
+            "f1": 0.375,
+            "support": 8
+          },
+          "prime_guarantee_dispute": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.8571428571428571,
+            "support": 4
+          },
+          "promotional_or_off_topic": {
+            "precision": 0.5555555555555556,
+            "recall": 0.8333333333333334,
+            "f1": 0.6666666666666666,
+            "support": 12
+          },
+          "refund_or_return": {
+            "precision": 1.0,
+            "recall": 0.2,
+            "f1": 0.3333333333333333,
+            "support": 5
+          },
+          "service_complaint": {
+            "precision": 0.8,
+            "recall": 0.6666666666666666,
+            "f1": 0.7272727272727273,
+            "support": 6
+          }
+        },
+        "confusion_matrix": [
+          [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0
+          ],
+          [
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            3,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            10,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            3,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            4
+          ]
+        ],
+        "labels": [
+          "account_access",
+          "billing_charge_dispute",
+          "delivery_late",
+          "delivery_not_received",
+          "delivery_wrong_location",
+          "device_or_digital_service",
+          "item_damaged_or_packaging",
+          "other",
+          "prime_guarantee_dispute",
+          "promotional_or_off_topic",
+          "refund_or_return",
+          "service_complaint"
+        ]
+      },
+      "routing": {
+        "coverage": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "false_auto_rate": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "escalation_miss_rate": {
+          "value": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 70
+        },
+        "escalation_precision": 0.7,
+        "escalation_recall": 1.0,
+        "counts": {
+          "escalate_correct": 49,
+          "escalate_unnecessary": 21,
+          "auto_but_should_escalate": 0,
+          "auto_correct": 0,
+          "n": 70
+        }
+      },
+      "escalation_rules": {
+        "draft_ungrounded": 34,
+        "low_retrieval_similarity": 11,
+        "never_auto_intent": 21,
+        "pii_payment_card": 3,
+        "account_compromise": 1
+      },
+      "per_stratum": {
+        "adversarial": {
+          "n": 11,
+          "intent_accuracy": {
+            "value": 0.7272727272727273,
+            "ci95": [
+              0.45454545454545453,
+              1.0
+            ],
+            "n": 11
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 11
+            },
+            "escalation_precision": 0.6363636363636364,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 7,
+              "escalate_unnecessary": 4,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 11
+            }
+          }
+        },
+        "proportional": {
+          "n": 39,
+          "intent_accuracy": {
+            "value": 0.6410256410256411,
+            "ci95": [
+              0.48717948717948717,
+              0.7948717948717948
+            ],
+            "n": 39
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 39
+            },
+            "escalation_precision": 0.717948717948718,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 28,
+              "escalate_unnecessary": 11,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 39
+            }
+          }
+        },
+        "rare": {
+          "n": 20,
+          "intent_accuracy": {
+            "value": 0.8,
+            "ci95": [
+              0.6,
+              0.95
+            ],
+            "n": 20
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "false_auto_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "escalation_miss_rate": {
+              "value": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 20
+            },
+            "escalation_precision": 0.7,
+            "escalation_recall": 1.0,
+            "counts": {
+              "escalate_correct": 14,
+              "escalate_unnecessary": 6,
+              "auto_but_should_escalate": 0,
+              "auto_correct": 0,
+              "n": 20
+            }
+          }
+        }
+      },
+      "routing_note": "escalates every example; routing metrics are degenerate by construction",
+      "judge": {
+        "mean_score": 2.736,
+        "would_send_rate": 0.086,
+        "groundedness": 2.3,
+        "resolution": 3.329,
+        "tone_fit": 2.7,
+        "safety": 2.614
+      }
+    },
+    "agent": {
+      "n": 70,
+      "intent": {
+        "accuracy": {
+          "value": 0.7285714285714285,
+          "ci95": [
+            0.6285714285714286,
+            0.8285714285714286
+          ],
+          "n": 70
+        },
+        "macro_f1": {
+          "value": 0.7331927650893166,
+          "ci95": [
+            0.5828536379634639,
+            0.8188335877644777
+          ],
+          "n": 70
+        },
+        "per_class": {
+          "account_access": {
+            "precision": 1.0,
+            "recall": 0.6,
+            "f1": 0.75,
+            "support": 5
+          },
+          "billing_charge_dispute": {
+            "precision": 1.0,
+            "recall": 0.8,
+            "f1": 0.8888888888888888,
+            "support": 5
+          },
+          "delivery_late": {
+            "precision": 0.5555555555555556,
+            "recall": 0.8333333333333334,
+            "f1": 0.6666666666666666,
+            "support": 6
+          },
+          "delivery_not_received": {
+            "precision": 0.4,
+            "recall": 0.5,
+            "f1": 0.4444444444444444,
+            "support": 4
+          },
+          "delivery_wrong_location": {
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1": 0.6666666666666666,
+            "support": 2
+          },
+          "device_or_digital_service": {
+            "precision": 1.0,
+            "recall": 0.8333333333333334,
+            "f1": 0.9090909090909091,
+            "support": 6
+          },
+          "item_damaged_or_packaging": {
+            "precision": 0.875,
+            "recall": 1.0,
+            "f1": 0.9333333333333333,
+            "support": 7
+          },
+          "other": {
+            "precision": 0.5,
+            "recall": 0.25,
+            "f1": 0.3333333333333333,
+            "support": 8
+          },
+          "prime_guarantee_dispute": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.8571428571428571,
+            "support": 4
+          },
+          "promotional_or_off_topic": {
+            "precision": 0.5882352941176471,
+            "recall": 0.8333333333333334,
+            "f1": 0.6896551724137931,
+            "support": 12
+          },
+          "refund_or_return": {
+            "precision": 1.0,
+            "recall": 0.6,
+            "f1": 0.75,
+            "support": 5
+          },
+          "service_complaint": {
+            "precision": 1.0,
+            "recall": 0.8333333333333334,
+            "f1": 0.9090909090909091,
+            "support": 6
+          }
+        },
+        "confusion_matrix": [
+          [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0
+          ],
+          [
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            5,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            7,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            2,
+            1,
+            0,
+            0,
+            0,
+            2,
+            0,
+            3,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            10,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            3,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5
+          ]
+        ],
+        "labels": [
+          "account_access",
+          "billing_charge_dispute",
+          "delivery_late",
+          "delivery_not_received",
+          "delivery_wrong_location",
+          "device_or_digital_service",
+          "item_damaged_or_packaging",
+          "other",
+          "prime_guarantee_dispute",
+          "promotional_or_off_topic",
+          "refund_or_return",
+          "service_complaint"
+        ]
+      },
+      "routing": {
+        "coverage": {
+          "value": 0.44285714285714284,
+          "ci95": [
+            0.32857142857142857,
+            0.5574999999999981
+          ],
+          "n": 70
+        },
+        "false_auto_rate": {
+          "value": 0.6129032258064516,
+          "ci95": [
+            0.4411764705882353,
+            0.7778645833333329
+          ],
+          "n": 70
+        },
+        "escalation_miss_rate": {
+          "value": 0.3877551020408163,
+          "ci95": [
+            0.2641509433962264,
+            0.5227543290043288
+          ],
+          "n": 70
+        },
+        "escalation_precision": 0.7692307692307693,
+        "escalation_recall": 0.6122448979591837,
+        "counts": {
+          "escalate_correct": 30,
+          "escalate_unnecessary": 9,
+          "auto_but_should_escalate": 19,
+          "auto_correct": 12,
+          "n": 70
+        }
+      },
+      "escalation_rules": {
+        "low_retrieval_similarity": 17,
+        "never_auto_intent": 18,
+        "pii_payment_card": 3,
+        "account_compromise": 1
+      },
+      "per_stratum": {
+        "adversarial": {
+          "n": 11,
+          "intent_accuracy": {
+            "value": 0.6363636363636364,
+            "ci95": [
+              0.36363636363636365,
+              0.9090909090909091
+            ],
+            "n": 11
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.5454545454545454,
+              "ci95": [
+                0.2727272727272727,
+                0.8181818181818182
+              ],
+              "n": 11
+            },
+            "false_auto_rate": {
+              "value": 0.5,
+              "ci95": [
+                0.0,
+                1.0
+              ],
+              "n": 11
+            },
+            "escalation_miss_rate": {
+              "value": 0.42857142857142855,
+              "ci95": [
+                0.0,
+                0.8
+              ],
+              "n": 11
+            },
+            "escalation_precision": 0.8,
+            "escalation_recall": 0.5714285714285714,
+            "counts": {
+              "escalate_correct": 4,
+              "escalate_unnecessary": 1,
+              "auto_but_should_escalate": 3,
+              "auto_correct": 3,
+              "n": 11
+            }
+          }
+        },
+        "proportional": {
+          "n": 39,
+          "intent_accuracy": {
+            "value": 0.6666666666666666,
+            "ci95": [
+              0.5128205128205128,
+              0.8205128205128205
+            ],
+            "n": 39
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.46153846153846156,
+              "ci95": [
+                0.3076923076923077,
+                0.6153846153846154
+              ],
+              "n": 39
+            },
+            "false_auto_rate": {
+              "value": 0.6666666666666666,
+              "ci95": [
+                0.4374320652173913,
+                0.875
+              ],
+              "n": 39
+            },
+            "escalation_miss_rate": {
+              "value": 0.42857142857142855,
+              "ci95": [
+                0.25806451612903225,
+                0.6153846153846154
+              ],
+              "n": 39
+            },
+            "escalation_precision": 0.7619047619047619,
+            "escalation_recall": 0.5714285714285714,
+            "counts": {
+              "escalate_correct": 16,
+              "escalate_unnecessary": 5,
+              "auto_but_should_escalate": 12,
+              "auto_correct": 6,
+              "n": 39
+            }
+          }
+        },
+        "rare": {
+          "n": 20,
+          "intent_accuracy": {
+            "value": 0.9,
+            "ci95": [
+              0.75,
+              1.0
+            ],
+            "n": 20
+          },
+          "routing": {
+            "coverage": {
+              "value": 0.35,
+              "ci95": [
+                0.15,
+                0.55
+              ],
+              "n": 20
+            },
+            "false_auto_rate": {
+              "value": 0.5714285714285714,
+              "ci95": [
+                0.2,
+                1.0
+              ],
+              "n": 20
+            },
+            "escalation_miss_rate": {
+              "value": 0.2857142857142857,
+              "ci95": [
+                0.06666666666666667,
+                0.5333333333333333
+              ],
+              "n": 20
+            },
+            "escalation_precision": 0.7692307692307693,
+            "escalation_recall": 0.7142857142857143,
+            "counts": {
+              "escalate_correct": 10,
+              "escalate_unnecessary": 3,
+              "auto_but_should_escalate": 4,
+              "auto_correct": 3,
+              "n": 20
+            }
+          }
+        }
+      },
+      "judge": {
+        "mean_score": 4.475,
+        "would_send_rate": 0.871,
+        "groundedness": 4.386,
+        "resolution": 4.229,
+        "tone_fit": 4.757,
+        "safety": 4.529
+      }
+    }
+  },
+  "providers": {
+    "serving": {
+      "fast": "ollama:qwen3:4b",
+      "judge": "gemini:gemini-3.5-flash-lite"
+    },
+    "switches": [],
+    "degraded_starts": [],
+    "chains": {
+      "fast": [
+        "ollama"
+      ],
+      "judge": [
+        "gemini",
+        "ollama"
+      ],
+      "cross": [
+        "ollama"
+      ]
+    },
+    "live_calls": {}
+  },
+  "cache": {
+    "entries": 926,
+    "first_written": 1788968932.2050443,
+    "last_written": 1789534822.9393795,
+    "path": "D:\\Github\\ground-score\\cache\\llm_cache.sqlite",
+    "cache_hits": 451,
+    "cache_misses": 0,
+    "errors": 0
+  }
+}

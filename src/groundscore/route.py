@@ -56,8 +56,24 @@ _HARD_ESCALATION_PATTERNS: list[tuple[str, str]] = [
     ("account_compromise", r"\b(hacked|compromised|unauthorou?s|unauthorized|unauthorised|"
                            r"fraud|fraudulent|identity theft|someone (?:else )?(?:used|"
                            r"accessed|ordered)|stolen card)\b"),
-    ("safety_or_harm", r"\b(injur\w+|burn\w+|fire|electrocut\w+|hospital|allerg\w+|"
-                       r"poison\w+|choking|unsafe|dangerous|died|death)\b"),
+    # `fire` and `burn` cannot be bare tokens for THIS brand. Amazon's device
+    # line is called Fire: measured over the 8,496-thread corpus, a bare
+    # \bfire\b matches 103 messages and 92 of them (89%) are Fire TV / Fire HD /
+    # Fire tablet questions, not fire hazards. It fired on three of seventy dev
+    # rows and escalated three ordinary device questions as safety incidents.
+    # `burn\w+` has the same shape, just rarer ("burning the midnight oil").
+    # Both now match only in harm-bearing phrases. This is a precision fix and
+    # not a hole in the safety net: every phrasing that describes a real fire or
+    # burn is still listed, and the eval is what found it.
+    ("safety_or_harm", r"\b(injur\w+|electrocut\w+|hospital|allerg\w+|"
+                       r"poison\w+|choking|unsafe|dangerous|died|death)\b"
+                       r"|(?:caught|catch(?:es|ing)?|on) fire\b"
+                       r"|\bfire (?:hazard|risk)\b"
+                       r"|\b(?:burst|bursting) into flames\b"
+                       r"|\bstarted a fire\b"
+                       r"|\bset (?:it|them|the \w+) alight\b"
+                       r"|\bburn\w* (?:my|his|her|their|the) "
+                       r"(?:hand|arm|face|skin|finger|child|baby|house|flat|home)\w*\b"),
     ("vulnerability", r"\b(suicid\w+|kill myself|self harm|disabled|carer|dementia|terminal)\b"),
 ]
 _HARD_RE = [(name, re.compile(pattern, re.IGNORECASE)) for name, pattern in _HARD_ESCALATION_PATTERNS]
