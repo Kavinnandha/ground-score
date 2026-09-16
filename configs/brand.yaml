@@ -66,7 +66,7 @@ retrieval:
   # "password reset loop" sit further apart than they should. nomic-embed-text
   # turned out to run locally at ~324 texts/minute with no quota, which is
   # strictly better, so it took over. The two backends agree on the top-1
-  # precedent only 7.5% of the time -- see REPORT.md, that instability is a
+  # precedent only 7.5% of the time -- see docs/ground-score-report.pdf, that instability is a
   # headline caveat, not a footnote.
   #
   # The cache is keyed on (model, dim, text), not on provider, so the committed

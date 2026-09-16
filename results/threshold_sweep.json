@@ -1,0 +1,526 @@
+{
+  "confidence_curve": [
+    {
+      "threshold": 0.0,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.025,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.05,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.075,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.1,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.125,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.15,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.175,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.2,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.225,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.25,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.275,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.3,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.325,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.35,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.375,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.4,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.425,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.45,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.475,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.5,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.525,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.55,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.575,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.6,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.625,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.65,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.675,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.7,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.725,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.75,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.775,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.8,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.825,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.85,
+      "coverage": 0.6142857142857143,
+      "false_auto_rate": 0.627906976744186,
+      "n_auto": 43
+    },
+    {
+      "threshold": 0.875,
+      "coverage": 0.6142857142857143,
+      "false_auto_rate": 0.627906976744186,
+      "n_auto": 43
+    },
+    {
+      "threshold": 0.9,
+      "coverage": 0.6142857142857143,
+      "false_auto_rate": 0.627906976744186,
+      "n_auto": 43
+    },
+    {
+      "threshold": 0.925,
+      "coverage": 0.6142857142857143,
+      "false_auto_rate": 0.627906976744186,
+      "n_auto": 43
+    },
+    {
+      "threshold": 0.95,
+      "coverage": 0.0,
+      "false_auto_rate": 0.0,
+      "n_auto": 0
+    },
+    {
+      "threshold": 0.975,
+      "coverage": 0.0,
+      "false_auto_rate": 0.0,
+      "n_auto": 0
+    },
+    {
+      "threshold": 1.0,
+      "coverage": 0.0,
+      "false_auto_rate": 0.0,
+      "n_auto": 0
+    }
+  ],
+  "similarity_curve": [
+    {
+      "threshold": 0.0,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.025,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.05,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.075,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.1,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.125,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.15,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.175,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.2,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.225,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.25,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.275,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.3,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.325,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.35,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.375,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.4,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.425,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.45,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.475,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.5,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.525,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.55,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.575,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.6,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.625,
+      "coverage": 0.6285714285714286,
+      "false_auto_rate": 0.6136363636363636,
+      "n_auto": 44
+    },
+    {
+      "threshold": 0.65,
+      "coverage": 0.6142857142857143,
+      "false_auto_rate": 0.6046511627906976,
+      "n_auto": 43
+    },
+    {
+      "threshold": 0.675,
+      "coverage": 0.6,
+      "false_auto_rate": 0.5952380952380952,
+      "n_auto": 42
+    },
+    {
+      "threshold": 0.7,
+      "coverage": 0.5857142857142857,
+      "false_auto_rate": 0.5853658536585366,
+      "n_auto": 41
+    },
+    {
+      "threshold": 0.725,
+      "coverage": 0.5285714285714286,
+      "false_auto_rate": 0.5675675675675675,
+      "n_auto": 37
+    },
+    {
+      "threshold": 0.75,
+      "coverage": 0.44285714285714284,
+      "false_auto_rate": 0.6129032258064516,
+      "n_auto": 31
+    },
+    {
+      "threshold": 0.775,
+      "coverage": 0.3142857142857143,
+      "false_auto_rate": 0.5909090909090909,
+      "n_auto": 22
+    },
+    {
+      "threshold": 0.8,
+      "coverage": 0.22857142857142856,
+      "false_auto_rate": 0.625,
+      "n_auto": 16
+    },
+    {
+      "threshold": 0.825,
+      "coverage": 0.18571428571428572,
+      "false_auto_rate": 0.6923076923076923,
+      "n_auto": 13
+    },
+    {
+      "threshold": 0.85,
+      "coverage": 0.1,
+      "false_auto_rate": 0.8571428571428571,
+      "n_auto": 7
+    },
+    {
+      "threshold": 0.875,
+      "coverage": 0.05714285714285714,
+      "false_auto_rate": 0.75,
+      "n_auto": 4
+    },
+    {
+      "threshold": 0.9,
+      "coverage": 0.0,
+      "false_auto_rate": 0.0,
+      "n_auto": 0
+    },
+    {
+      "threshold": 0.925,
+      "coverage": 0.0,
+      "false_auto_rate": 0.0,
+      "n_auto": 0
+    },
+    {
+      "threshold": 0.95,
+      "coverage": 0.0,
+      "false_auto_rate": 0.0,
+      "n_auto": 0
+    },
+    {
+      "threshold": 0.975,
+      "coverage": 0.0,
+      "false_auto_rate": 0.0,
+      "n_auto": 0
+    },
+    {
+      "threshold": 1.0,
+      "coverage": 0.0,
+      "false_auto_rate": 0.0,
+      "n_auto": 0
+    }
+  ],
+  "chosen": {
+    "tuned": true,
+    "tuned_on": "dev",
+    "n_dev": 70,
+    "max_false_auto_budget": 0.1,
+    "tau_confidence": 0.9,
+    "tau_similarity": 0.75,
+    "budget_feasible": false,
+    "dev_operating_point": {
+      "confidence": null,
+      "similarity": null
+    },
+    "dev_harm_floor": {
+      "confidence": {
+        "threshold": 0.0,
+        "coverage": 0.6285714285714286,
+        "false_auto_rate": 0.6136363636363636,
+        "n_auto": 44
+      },
+      "similarity": {
+        "threshold": 0.725,
+        "coverage": 0.5285714285714286,
+        "false_auto_rate": 0.5675675675675675,
+        "n_auto": 37
+      }
+    },
+    "_note": "Chosen on the dev split only. With ~70 dev examples these values are themselves noisy estimates; the report treats them as a fitted parameter, not a discovered constant. If budget_feasible is false, these are the conservative defaults and NOT fitted at all -- no threshold on either signal reached the false-auto budget, which is reported rather than worked around."
+  }
+}

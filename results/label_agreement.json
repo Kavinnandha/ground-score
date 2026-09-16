@@ -1,0 +1,572 @@
+{
+  "n": 50,
+  "kind": "human_vs_model",
+  "pass_1": "golden_v1.jsonl (manually adjudicated by the project author)",
+  "pass_2": "golden_v1_relabel.jsonl (second annotator: gemma3:4b)",
+  "caveat": "Pass 1 was manually adjudicated by the project author. Pass 2 was produced by a model, so this is a human-versus-model sensitivity check, not inter-annotator agreement between two people.",
+  "intent": {
+    "raw_agreement": 0.62,
+    "cohen_kappa": 0.5787139689578713,
+    "n": 50,
+    "weights": null
+  },
+  "action": {
+    "raw_agreement": 0.68,
+    "cohen_kappa": 0.10913140311804015,
+    "n": 50,
+    "weights": null
+  },
+  "action_base_rates": {
+    "pass_1_escalate": 0.66,
+    "pass_2_escalate": 0.94
+  },
+  "by_stratum": {
+    "adversarial": {
+      "n": 10,
+      "intent": {
+        "raw_agreement": 0.2,
+        "cohen_kappa": 0.14893617021276595,
+        "n": 10,
+        "weights": null
+      },
+      "action": {
+        "raw_agreement": 0.7,
+        "cohen_kappa": 0.0,
+        "n": 10,
+        "weights": null
+      }
+    },
+    "proportional": {
+      "n": 27,
+      "intent": {
+        "raw_agreement": 0.6296296296296297,
+        "cohen_kappa": 0.5921450151057401,
+        "n": 27,
+        "weights": null
+      },
+      "action": {
+        "raw_agreement": 0.7777777777777778,
+        "cohen_kappa": 0.2894736842105263,
+        "n": 27,
+        "weights": null
+      }
+    },
+    "rare": {
+      "n": 13,
+      "intent": {
+        "raw_agreement": 0.9230769230769231,
+        "cohen_kappa": 0.8761904761904762,
+        "n": 13,
+        "weights": null
+      },
+      "action": {
+        "raw_agreement": 0.46153846153846156,
+        "cohen_kappa": 0.0,
+        "n": 13,
+        "weights": null
+      }
+    }
+  },
+  "action_confusion": {
+    "escalate->escalate": 32,
+    "auto->escalate": 15,
+    "auto->auto": 2,
+    "escalate->auto": 1
+  },
+  "disagreements": [
+    {
+      "thread_id": "723963",
+      "stratum": "proportional",
+      "customer_msg": "So has been sending me random other people's packages and their support has been worse than useless.",
+      "pass_1": {
+        "intent": "service_complaint",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "delivery_wrong_location",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Two distinct problems, other people's packages arriving and support failing, with no specific ask, which the boundary rule sends here.",
+      "pass_2_note": "The customer is reporting receiving packages belonging to others and expresses dissatisfaction with support, indicating a significant issue requiring human intervention."
+    },
+    {
+      "thread_id": "2208501",
+      "stratum": "proportional",
+      "customer_msg": "Help So #disappointed Ordered a prime phone, should have been here yesterday but tracking just says delayed until Friday.",
+      "pass_1": {
+        "intent": "delivery_late",
+        "action": "auto",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "delivery_late",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Delayed but still expected, and tracking already carries the new date. A grounded delay reply is safe.",
+      "pass_2_note": "The customer is expressing disappointment about a late delivery and requesting information on its status."
+    },
+    {
+      "thread_id": "431099",
+      "stratum": "adversarial",
+      "customer_msg": "You know me waiting on this delivery is preventing me from doing uni work. If I fail, Amazon is to blame🙄🙄🙄",
+      "pass_1": {
+        "intent": "delivery_late",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "service_complaint",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Still waiting, still expected. Standard delivery-window answer is safe.",
+      "pass_2_note": "The customer expresses frustration and blames Amazon for academic consequences, indicating a negative support experience."
+    },
+    {
+      "thread_id": "352902",
+      "stratum": "proportional",
+      "customer_msg": "I'm a Prime Business customer, and facing problem placing orders. It's really a pity that your system still doesn't support different shipping+billing address (",
+      "pass_1": {
+        "intent": "other",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "billing_charge_dispute",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "A Prime Business system limitation, separate shipping and billing addresses. Product feedback that no class covers.",
+      "pass_2_note": "The customer is expressing frustration with a system limitation and not directly contesting a charge."
+    },
+    {
+      "thread_id": "2914504",
+      "stratum": "rare",
+      "customer_msg": "'gift wrapping'. It doesn't quite say gift - or wrapped. Box was cracked and the tape is so sticky it's ripped the presentation packaging. <URL>",
+      "pass_1": {
+        "intent": "item_damaged_or_packaging",
+        "action": "auto",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "item_damaged_or_packaging",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Gift wrapping that arrived cracked and torn. The packaging-feedback reply is safe in public.",
+      "pass_2_note": "The message describes damage to packaging and includes a URL, requiring human review for potential security or further details."
+    },
+    {
+      "thread_id": "2422658",
+      "stratum": "adversarial",
+      "customer_msg": "just had to make a complaint regarding wrong item sent to me. Have to say your customer service is fantastic!!",
+      "pass_1": {
+        "intent": "service_complaint",
+        "action": "escalate",
+        "confidence": 1
+      },
+      "pass_2": {
+        "intent": "promotional_or_off_topic",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_1_note": "Reads as sarcasm about the support experience; the brand took it literally. Ambiguous either way, so a human should read it.",
+      "pass_2_note": "The message is praise for the brand and does not constitute a support request."
+    },
+    {
+      "thread_id": "738001",
+      "stratum": "rare",
+      "customer_msg": "seriously?! A massive box just for an item 2mm thick?! Stop killing the rainforests!! <URL>",
+      "pass_1": {
+        "intent": "item_damaged_or_packaging",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "promotional_or_off_topic",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Over-packaging complaint, which this class covers.",
+      "pass_2_note": "The message expresses frustration and criticism of packaging practices but does not constitute a support request or fall into any defined category."
+    },
+    {
+      "thread_id": "444306",
+      "stratum": "adversarial",
+      "customer_msg": "How do I buy prime membership as a gift? I want to buy Prime + a Echo as a Christmas gift?",
+      "pass_1": {
+        "intent": "other",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "device_or_digital_service",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Pre-sales question about gifting a Prime membership. No account-access issue at all, and the taxonomy has no pre-sales class.",
+      "pass_2_note": "The customer is asking about purchasing a digital service (Prime) and device (Echo) as a gift, which falls outside the defined categories."
+    },
+    {
+      "thread_id": "1236278",
+      "stratum": "rare",
+      "customer_msg": "I received my order today and one of the books is damaged. <URL>",
+      "pass_1": {
+        "intent": "item_damaged_or_packaging",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "item_damaged_or_packaging",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "One damaged book in an otherwise fine order, reported calmly. The return and replacement options reply is safe.",
+      "pass_2_note": "The customer explicitly states the item is damaged and provides a URL for evidence."
+    },
+    {
+      "thread_id": "47949",
+      "stratum": "rare",
+      "customer_msg": "this is ridiculous! My drum head came in a broken box and is warped and ripped <URL>",
+      "pass_1": {
+        "intent": "item_damaged_or_packaging",
+        "action": "auto",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "item_damaged_or_packaging",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Item arrived warped in a broken box. The available-options reply is the brand's own standard answer.",
+      "pass_2_note": "The customer explicitly describes damage to the item and packaging."
+    },
+    {
+      "thread_id": "2240632",
+      "stratum": "adversarial",
+      "customer_msg": "When are we going to get suits 7 on ???",
+      "pass_1": {
+        "intent": "device_or_digital_service",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "delivery_not_received",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_1_note": "Prime Video content availability, which this class covers explicitly. Not off-topic chatter.",
+      "pass_2_note": "The customer is asking about the delivery status of 'suits 7', but provides no context regarding order number or other identifying information. This requires human investigation."
+    },
+    {
+      "thread_id": "13563",
+      "stratum": "proportional",
+      "customer_msg": "when do you guys charge for the Xbox one X I preordered? It ships the 6th.",
+      "pass_1": {
+        "intent": "other",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "billing_charge_dispute",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_1_note": "A question about when a pre-order is charged. There is no dispute, so billing_charge_dispute does not apply, and no class covers charge timing.",
+      "pass_2_note": "The customer is asking about a charge related to a pre-order, but the nature of the charge isn't specified. This requires investigation."
+    },
+    {
+      "thread_id": "2435218",
+      "stratum": "proportional",
+      "customer_msg": "ALL of the video streaming apps look like garbage on the new 2017 Fire TV.. I even restored to factory, and no difference.",
+      "pass_1": {
+        "intent": "device_or_digital_service",
+        "action": "auto",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "device_or_digital_service",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Streaming apps rendering badly on a Fire TV after a factory reset. Asking for more detail is safe in public.",
+      "pass_2_note": "The customer is reporting a specific issue with a device (Fire TV) and its functionality, falling under the scope of digital service support."
+    },
+    {
+      "thread_id": "205181",
+      "stratum": "proportional",
+      "customer_msg": "When Amazon tells you your package is arriving today before 8 pm but it hasn't even arrived at/left the carrier facility. Ugh 😑 <URL>",
+      "pass_1": {
+        "intent": "delivery_late",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "delivery_late",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "The package has not left the carrier facility, so it is in transit and merely going to be late.",
+      "pass_2_note": "The customer expresses frustration and disbelief regarding a missed delivery window, indicating potential anger or distress."
+    },
+    {
+      "thread_id": "1521199",
+      "stratum": "proportional",
+      "customer_msg": "is it standard protocol for your delivery drivers to knock on the door or ring the bell when delivering? He didn’t 🤔",
+      "pass_1": {
+        "intent": "other",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "promotional_or_off_topic",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_1_note": "A policy question about driver conduct. No wrong-location claim is made, which delivery_wrong_location requires.",
+      "pass_2_note": "The customer is asking about delivery protocol, not a problem with a delivery."
+    },
+    {
+      "thread_id": "2422680",
+      "stratum": "proportional",
+      "customer_msg": "my partner has had bad service at the moment. Parcel was suppose to arrive saturday had a delay notice, then would be here today. Still no parcel! This was supp",
+      "pass_1": {
+        "intent": "prime_guarantee_dispute",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "delivery_late",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "The grievance is explicitly framed as paying extra for Prime and still waiting, which is the boundary this class turns on rather than simple lateness.",
+      "pass_2_note": "Customer expresses frustration and anger regarding a late delivery despite paying for Prime."
+    },
+    {
+      "thread_id": "43288",
+      "stratum": "proportional",
+      "customer_msg": ", Alexa couldn't find any songs when asked to \"Play Hindi Party Songs\" on Echo2 😑",
+      "pass_1": {
+        "intent": "device_or_digital_service",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "device_or_digital_service",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Alexa cannot find a requested music category on an Echo. Routine device troubleshooting.",
+      "pass_2_note": "The customer is reporting a specific issue with a digital service (Alexa) and its functionality, requiring investigation."
+    },
+    {
+      "thread_id": "1723425",
+      "stratum": "adversarial",
+      "customer_msg": "Preordered Sonic Forces so we can get it today - Amazon said it's not even dispatched?! Wtf why do this to me >:(",
+      "pass_1": {
+        "intent": "delivery_late",
+        "action": "auto",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "delivery_not_received",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Pre-order not yet dispatched but still expected. Frustrated wording, no abuse, and the delivery-estimate answer is safe in public.",
+      "pass_2_note": "The customer expresses frustration and disbelief regarding a non-dispatched pre-order."
+    },
+    {
+      "thread_id": "1955755",
+      "stratum": "adversarial",
+      "customer_msg": "Vai ter promoção do Kindle ???",
+      "pass_1": {
+        "intent": "other",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "promotional_or_off_topic",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Genuine pre-sales question about Kindle discounts, not promotional chatter. No class covers pricing or promotions. Also Portuguese.",
+      "pass_2_note": "The message is asking about a promotion and does not express a support need or complaint."
+    },
+    {
+      "thread_id": "2952285",
+      "stratum": "rare",
+      "customer_msg": "What I ordered vs what it came in. Literally a tiny fob watch. Slow clap You're wrong for the #environment. Do better! But thanks for making it recyclable at le",
+      "pass_1": {
+        "intent": "item_damaged_or_packaging",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "item_damaged_or_packaging",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Over-packaging complaint with a photo, which this class covers.",
+      "pass_2_note": "The customer received a significantly different item than ordered and expressed dissatisfaction with the packaging, indicating a problem beyond a simple mis-shipment."
+    },
+    {
+      "thread_id": "1464242",
+      "stratum": "proportional",
+      "customer_msg": "so it's acceptable to send parcels with NO packaging now is it?! Well done for ruining Christmas presents! I'm so angry.",
+      "pass_1": {
+        "intent": "item_damaged_or_packaging",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "service_complaint",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Packaging failure that ruined Christmas presents. The customer says outright they are angry.",
+      "pass_2_note": "Customer expresses extreme anger and dissatisfaction with the service, indicating a significant negative experience."
+    },
+    {
+      "thread_id": "1643394",
+      "stratum": "proportional",
+      "customer_msg": "Hey, ! Lester’s not called me back! Is he still waiting for to reply? <URL>",
+      "pass_1": {
+        "intent": "service_complaint",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "delivery_not_received",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "A promised callback from a named agent never came, so the customer has already been failed once.",
+      "pass_2_note": "The customer is reporting a missing delivery and requesting information about its status."
+    },
+    {
+      "thread_id": "2036746",
+      "stratum": "proportional",
+      "customer_msg": "Why did I pay for one day shipping from and it takes 2 days?",
+      "pass_1": {
+        "intent": "prime_guarantee_dispute",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "delivery_late",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Disputes a paid one-day shipping promise rather than asking where a parcel is, which is the boundary this class turns on.",
+      "pass_2_note": "The customer expresses frustration with the delivery time exceeding expectations."
+    },
+    {
+      "thread_id": "2926398",
+      "stratum": "adversarial",
+      "customer_msg": "Hey amazon. You decided to refund an order instead of replacing it but didn't bother to refund the full amount (import fees) of an item I didn't even get!?!? Th",
+      "pass_1": {
+        "intent": "refund_or_return",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "billing_charge_dispute",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Chasing the unpaid portion of an agreed refund, and angry about it.",
+      "pass_2_note": "The customer disputes an incorrect refund and the item remains listed, indicating a complex billing issue requiring investigation."
+    },
+    {
+      "thread_id": "1212679",
+      "stratum": "rare",
+      "customer_msg": "Thanks I recycled your box into a Halloween costume. #halloween <URL>",
+      "pass_1": {
+        "intent": "promotional_or_off_topic",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "promotional_or_off_topic",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Friendly chatter about reusing a box, no support request.",
+      "pass_2_note": "The message is purely promotional and does not represent a support request or complaint."
+    },
+    {
+      "thread_id": "2337556",
+      "stratum": "proportional",
+      "customer_msg": "Phone number provided to website isn't working right now, so I cannot connect to the courier facility. Any help?",
+      "pass_1": {
+        "intent": "other",
+        "action": "escalate",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "account_access",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "A broken courier contact number. Nothing to do with account access, and no class covers contact-channel failures.",
+      "pass_2_note": "Customer is unable to access a website feature (courier facility) and requires assistance."
+    },
+    {
+      "thread_id": "2132780",
+      "stratum": "rare",
+      "customer_msg": "Shocking packaging, is this how you package all your hard drives ? <URL>",
+      "pass_1": {
+        "intent": "item_damaged_or_packaging",
+        "action": "auto",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "item_damaged_or_packaging",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Packaging-quality complaint with no explicit ask, which this class covers.",
+      "pass_2_note": "The customer explicitly describes damaged packaging and provides a URL for visual evidence; this is not a standard complaint category."
+    },
+    {
+      "thread_id": "260829",
+      "stratum": "proportional",
+      "customer_msg": ". I guess it was some new definition of \"delivering today\" that I wasn't previously aware of.",
+      "pass_1": {
+        "intent": "delivery_late",
+        "action": "auto",
+        "confidence": 2
+      },
+      "pass_2": {
+        "intent": "delivery_not_received",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Sarcastic but routine: the parcel missed its promised day and is still expected.",
+      "pass_2_note": "The customer expresses disbelief about the delivery status without providing specific details or location information."
+    },
+    {
+      "thread_id": "1565869",
+      "stratum": "adversarial",
+      "customer_msg": "is it usual practice to cut off calls to customers as u av failed twice in a week to deliver prime? Very rude!!!!!",
+      "pass_1": {
+        "intent": "service_complaint",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_2": {
+        "intent": "prime_guarantee_dispute",
+        "action": "escalate",
+        "confidence": 3
+      },
+      "pass_1_note": "Subject is the support experience itself (calls cut off), not the delivery.",
+      "pass_2_note": "The customer is explicitly stating rudeness and disputing a paid Prime guarantee due to repeated failures."
+    }
+  ],
+  "action_kappa_warning": "The two passes escalate at very different rates (66% vs 94%). Cohen's kappa on the action is therefore driven mostly by that prior and not by label ambiguity; read raw_agreement and action_confusion instead, and treat the intent kappa as the usable label-quality figure."
+}

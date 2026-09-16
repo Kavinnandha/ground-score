@@ -69,11 +69,47 @@ All prompt iteration and all threshold tuning happened on dev
 run appends a timestamped record to `results/test_runs.jsonl`, so the number of
 times the test set was scored is auditable rather than asserted.
 
+## Who the annotator actually is
+
+Read this before any number in the report.
+
+**I manually adjudicated the 150 labels in `golden_v1.jsonl`, one example at a
+time against this guideline.** The classifier supplied weak-label proposals,
+but I made the final intent, routing-action and escalation-reason decisions and
+wrote the notes. The blind reply-quality reference scores were also written by
+me before I saw any LLM-judge output.
+
+What that costs, concretely:
+
+- **The judge-validation statistic is judge-versus-human.** The LLM judge is
+  compared with my blind reference scores in `results/judge_agreement.json`.
+  The score is still limited by one person's judgement, which is why the report
+  distinguishes it from inter-annotator agreement.
+- **The routing labels encode an explicit human policy.** "Should a human
+  handle this?" was decided against the written guideline below.
+- **Anchoring remains a limitation.** The weak labels came from `qwen3:4b`.
+  The 31% override rate shows I did not accept them mechanically, but
+  adjudicating a proposal can still influence a human annotator.
+
+The primary labels are human-authored. Models are limited to weak proposals and
+an optional independent second pass:
+
+| role | model | what it produced |
+|---|---|---|
+| weak labeller | `qwen3:4b` (local) | the pre-filled proposals in `candidates.jsonl` |
+| adjudicator | project author | `golden_v1.jsonl`, the labels everything is scored against |
+| second annotator | `gemma3:4b` (local) | `golden_v1_relabel.jsonl`, the blind second pass |
+| reply judge | `gemini-3.5-flash-lite` | `results/judge_*.jsonl` |
+
+`tools/label_cli.py` is the interactive path used for the adjudication and can
+be used to revise any row without changing the downstream pipeline.
+
 ## Labelling procedure
 
 Each example is pre-filled with a weak label from the classifier and then
-adjudicated one at a time by hand in `tools/label_cli.py`. Every override needs
-a written note.
+adjudicated one at a time against this guideline (`tools/label_cli.py` is the
+interactive path; see the disclosure above for who did the adjudicating). Every
+override needs a written note.
 
 Fields recorded per example: `intent`, `action` (auto/escalate),
 `escalation_reason`, `annotator_confidence` (1–3), `note`,
@@ -101,15 +137,28 @@ Escalation reason tags: `needs_account_access`, `angry_or_distressed`,
 
 ## Label-quality evidence, and its limit
 
-There's one annotator, so the agreement statistic reported here is
-**intra-annotator**. A 50-example subset gets re-labelled blind (proposals and
-original labels hidden) at least 24 hours later, via
-`python tools/label_cli.py --relabel`, and Cohen's κ is computed between the two
-passes.
+A 50-example subset is labelled a second time, blind, and Cohen's κ is computed
+between the two passes by `eval/label_agreement.py` (`results/label_agreement.json`).
+There are two ways to produce that second pass and they measure different things,
+so the output records which one ran:
 
-That's a ceiling estimate on label noise, not inter-annotator agreement. It
-measures self-consistency. A second annotator would very likely agree less,
-which means the true label noise is higher than reported and every metric built
-on these labels has more slack in it than the confidence intervals alone
-suggest. The report repeats this in the mandatory limitations section, because
-it's the single biggest caveat on the headline number.
+| command | second pass by | statistic | what it means |
+|---|---|---|---|
+| `make relabel` | the same annotator, labels hidden | **intra**-annotator | self-consistency, a *ceiling* on label quality |
+| `make second-annotator` | a different model, blind | **inter**-annotator | genuine disagreement between two annotators |
+
+The optional second pass in this repository uses `gemma3:4b` to re-label the subset with the
+weak labels, the adjudicated labels and the retrieved neighbours all withheld.
+It sees the customer message and this guideline, which is what a human annotator
+is given.
+
+This is a human-versus-model sensitivity check, not inter-annotator agreement.
+The 4B model can share neither the human's judgement nor necessarily the same
+threshold for escalation, so its κ does not replace a second human annotator.
+The per-stratum breakdown and the full list of disagreements are written out so
+that this distinction is visible.
+
+Every metric built on these labels therefore has more slack in it than its
+confidence interval suggests, because the CI covers sampling noise and not label
+noise. The report repeats this in the mandatory limitations section, because it
+is the single biggest caveat on the headline number.

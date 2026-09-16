@@ -2,25 +2,28 @@ PY ?= python
 export PYTHONPATH := src:$(PYTHONPATH)
 
 .PHONY: help setup reproduce full test clean data corpus embeddings intents golden label \
-        relabel tune replies eval eval-test judge-human judge-agreement report-inputs ui report reference
+        relabel second-annotator label-agreement tune replies eval eval-test \
+        judge-human judge-agreement failures ui reference
 
 help:
 	@echo "make setup       install dependencies"
 	@echo "make reproduce   regenerate headline results from committed caches (NO API key needed)"
 	@echo "make test        run the test suite"
 	@echo "make ui          browser UI for one message at a time (needs Ollama)"
-	@echo "make report      render docs/report.html -> docs/ground-score-report.pdf"
 	@echo ""
 	@echo "Full rebuild (needs Ollama running, plus GEMINI_API_KEY for the judge):"
 	@echo "  make full        data -> corpus -> embeddings -> intents"
 	@echo "  make golden      sample 150 candidates with weak labels"
 	@echo "  make label       adjudicate them by hand    (interactive)"
-	@echo "  make relabel     blind re-label of 50, for intra-annotator kappa"
+	@echo "  make relabel     blind re-label of 50 BY YOU, for intra-annotator kappa"
+	@echo "  make second-annotator  blind re-label of the same 50 by a DIFFERENT model"
+	@echo "  make label-agreement   kappa between the two passes"
 	@echo "  make tune        fit routing thresholds on dev"
 	@echo "  make replies     generate dev replies, WITHOUT judging them"
 	@echo "  make judge-human blind-score those replies    (interactive, must precede eval)"
 	@echo "  make eval        score every system on dev, judge included"
-	@echo "  make judge-agreement   judge-vs-human validation"
+	@echo "  make judge-agreement   judge-vs-reference validation"
+	@echo "  make failures    rank failure modes by frequency, with examples"
 	@echo "  make reference   judge the brand's OWN replies on the same rows (no labels needed)"
 	@echo "  make eval-test   score the test split ONCE"
 
@@ -41,11 +44,6 @@ test:
 # adds no dependency; drafting still needs a live provider.
 ui:
 	$(PY) tools/ui.py
-
-# The 6-page PDF that goes with the submission. Source is docs/report.html;
-# rendering is Chrome/Edge headless, so this adds no install dependency.
-report:
-	$(PY) scripts/build_report.py
 
 # ---------------------------------------------------------------------------
 # Full rebuild from the raw dataset.
@@ -73,6 +71,16 @@ label:
 relabel:
 	$(PY) tools/label_cli.py --relabel
 
+# The other half of label quality. --relabel above measures the annotator
+# against themselves; this measures them against a different annotator, which
+# is the number the report actually needs. Runs on a local model by default so
+# it does not spend the judge's daily hosted quota.
+second-annotator:
+	$(PY) -u tools/second_annotator.py --model gemma3:4b
+
+label-agreement:
+	$(PY) eval/label_agreement.py
+
 tune:
 	$(PY) eval/tune_thresholds.py
 
@@ -97,6 +105,11 @@ judge-human:
 
 judge-agreement:
 	$(PY) eval/judge_agreement.py --split dev
+
+# The report has to name its top failure modes. Counting them beats picking
+# them, which is how the interesting ones crowd out the common ones.
+failures:
+	$(PY) eval/failure_analysis.py --split dev --all-systems
 
 # The brand's own historical reply, scored by the same blind judge on the same
 # rows. Needs no golden labels, so it can run before adjudication -- it is the

@@ -1,0 +1,331 @@
+{
+  "n_paired": 60,
+  "dimensions": {
+    "groundedness": {
+      "spearman_rho": 0.6630926571322893,
+      "p_value": 7.804896874008325e-09,
+      "n": 60,
+      "mean_bias": 0.21666666666666667,
+      "weighted_kappa": 0.6646916240237004,
+      "human_mean": 3.517,
+      "judge_mean": 3.733
+    },
+    "resolution": {
+      "spearman_rho": -0.07475943822920242,
+      "p_value": 0.5702401294718009,
+      "n": 60,
+      "mean_bias": 1.55,
+      "weighted_kappa": -0.017797552836485098,
+      "human_mean": 2.333,
+      "judge_mean": 3.883
+    },
+    "tone_fit": {
+      "spearman_rho": 0.7237197147355818,
+      "p_value": 6.44327675022647e-11,
+      "n": 60,
+      "mean_bias": 0.48333333333333334,
+      "weighted_kappa": 0.670263788968825,
+      "human_mean": 3.55,
+      "judge_mean": 4.033
+    },
+    "safety": {
+      "spearman_rho": 0.664834948335816,
+      "p_value": 6.905461777768221e-09,
+      "n": 60,
+      "mean_bias": 0.21666666666666667,
+      "weighted_kappa": 0.7436974789915967,
+      "human_mean": 3.75,
+      "judge_mean": 3.967
+    }
+  },
+  "would_send": {
+    "raw_agreement": 0.7666666666666667,
+    "cohen_kappa": 0.5414847161572052,
+    "n": 60,
+    "weights": null,
+    "human_send_rate": 0.433,
+    "judge_send_rate": 0.567
+  },
+  "disagreements": [
+    {
+      "thread_id": "1117987",
+      "system": "trivial_always_auto",
+      "reply": "Sorry for the trouble! We'd like to help. Please share more details so we can look into this for you.",
+      "human": {
+        "groundedness": 4,
+        "resolution": 2,
+        "tone_fit": 3,
+        "safety": 5,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 5,
+        "tone_fit": 5,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply offers helpful assistance and asks for details without making any unsupported factual claims or promises. It closely mirrors the tone and approach found in the precedent examples."
+    },
+    {
+      "thread_id": "2631456",
+      "system": "agent_no_retrieval",
+      "reply": "We appreciate your feedback! For reviews in Indian languages, please share the review link so we can assist. Thank you!",
+      "human": {
+        "groundedness": 4,
+        "resolution": 3,
+        "tone_fit": 4,
+        "safety": 4,
+        "would_send": true
+      },
+      "judge": {
+        "groundedness": 3,
+        "resolution": 3,
+        "tone_fit": 2,
+        "safety": 3,
+        "would_send": false
+      },
+      "judge_justification": "The reply uses an overly cheerful and unnatural tone ('We appreciate your feedback!') for a customer complaining about review censorship, and makes a specific unsupported claim about Indian language r"
+    },
+    {
+      "thread_id": "420919",
+      "system": "agent",
+      "reply": "I'm sorry you haven't received your package yet. Could you confirm the details via the link below? ^SY",
+      "human": {
+        "groundedness": 4,
+        "resolution": 2,
+        "tone_fit": 3,
+        "safety": 4,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 5,
+        "tone_fit": 5,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply accurately matches the sentiment and actions found in the precedents by offering an apology and asking the customer to provide details via a link. Every claim is fully supported by the prece"
+    },
+    {
+      "thread_id": "881083",
+      "system": "trivial_always_auto",
+      "reply": "Sorry for the trouble! We'd like to help. Please share more details so we can look into this for you.",
+      "human": {
+        "groundedness": 4,
+        "resolution": 2,
+        "tone_fit": 3,
+        "safety": 5,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 3,
+        "tone_fit": 5,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply asks for clarification like the precedent examples when dealing with a return issue. It makes no unsupported factual claims and maintains a helpful tone."
+    },
+    {
+      "thread_id": "13563",
+      "system": "agent_no_retrieval",
+      "reply": "Hi there! Thanks for your question about your Xbox One X pre-order. To help you better, could you share your order number? This will let us check the exact shipping timeline for your specific order. W",
+      "human": {
+        "groundedness": 2,
+        "resolution": 1,
+        "tone_fit": 3,
+        "safety": 2,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 3,
+        "tone_fit": 3,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply asks for the order number to check the shipping timeline, which is a reasonable clarifying question given the general precedents. While slightly generic in tone, it is safe and grounded."
+    },
+    {
+      "thread_id": "1643394",
+      "system": "trivial_always_auto",
+      "reply": "Sorry for the trouble! We'd like to help. Please share more details so we can look into this for you.",
+      "human": {
+        "groundedness": 4,
+        "resolution": 2,
+        "tone_fit": 3,
+        "safety": 5,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 3,
+        "tone_fit": 4,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply is a safe, polite, and generic acknowledgement that does not invent any specific policies or unsupported promises. However, it only asks for more details rather than providing a direct resol"
+    },
+    {
+      "thread_id": "2631456",
+      "system": "trivial_always_auto",
+      "reply": "Sorry for the trouble! We'd like to help. Please share more details so we can look into this for you.",
+      "human": {
+        "groundedness": 4,
+        "resolution": 2,
+        "tone_fit": 3,
+        "safety": 5,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 5,
+        "tone_fit": 5,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply follows the exact empathetic and helpful register of the precedent responses, asking for more details to move the customer issue forward without making any ungrounded promises."
+    },
+    {
+      "thread_id": "298989",
+      "system": "simple_tfidf_nn",
+      "reply": "I'm sorry to hear this. Have you had a chance to contact the seller by following the steps shown here: <URL> ^GR",
+      "human": {
+        "groundedness": 4,
+        "resolution": 2,
+        "tone_fit": 4,
+        "safety": 4,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 5,
+        "tone_fit": 5,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply directly matches a precedent provided for a similar delivery dispute and offers an actionable troubleshooting step. Every element is fully grounded in the precedent."
+    },
+    {
+      "thread_id": "2647266",
+      "system": "agent",
+      "reply": "I'm sorry to hear this! I'd like to have a member of my team look into this! Please submit your details here: <URL> ^ME",
+      "human": {
+        "groundedness": 5,
+        "resolution": 1,
+        "tone_fit": 5,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge": {
+        "groundedness": 1,
+        "resolution": 5,
+        "tone_fit": 5,
+        "safety": 1,
+        "would_send": false
+      },
+      "judge_justification": "The reply copies an exact message from precedent E3 which promised team follow-up and a specific form link for a delivery error, but the customer here only expressed general dissatisfaction without a "
+    },
+    {
+      "thread_id": "520757",
+      "system": "simple_tfidf_nn",
+      "reply": "I'm sorry you haven't received your orders yet! Please call or chat with us here for options: <URL> ^MB",
+      "human": {
+        "groundedness": 3,
+        "resolution": 1,
+        "tone_fit": 4,
+        "safety": 4,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 3,
+        "resolution": 5,
+        "tone_fit": 5,
+        "safety": 4,
+        "would_send": true
+      },
+      "judge_justification": "The reply uses phrasing directly adapted from a precedent, though the customer complained about a misdelivered order rather than a missing one. It provides actionable help via the correct support chan"
+    },
+    {
+      "thread_id": "530851",
+      "system": "agent",
+      "reply": "Amazon Echo \u304c\u697d\u3057\u3044\u3067\u3059\u306d\uff01\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3059\uff01^VM",
+      "human": {
+        "groundedness": 4,
+        "resolution": 4,
+        "tone_fit": 4,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 2,
+        "tone_fit": 4,
+        "safety": 5,
+        "would_send": false
+      },
+      "judge_justification": "The reply acknowledges the customer's positive sentiment without advancing any unsupported claims, but it merely echoes sympathy rather than providing an actionable next step. Therefore, it does not m"
+    },
+    {
+      "thread_id": "1955755",
+      "system": "simple_tfidf_nn",
+      "reply": "Boa noite Milena! Desde j\u00e1 temos descontos de nossos Kindle, olha s\u00f3 o seguinte link de nosso site: <URL>",
+      "human": {
+        "groundedness": 3,
+        "resolution": 4,
+        "tone_fit": 4,
+        "safety": 3,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 5,
+        "tone_fit": 5,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply directly addresses the customer's question about Kindle promotions by providing a link, perfectly matching the precedent provided in E1."
+    },
+    {
+      "thread_id": "1246395",
+      "system": "trivial_always_auto",
+      "reply": "Sorry for the trouble! We'd like to help. Please share more details so we can look into this for you.",
+      "human": {
+        "groundedness": 4,
+        "resolution": 2,
+        "tone_fit": 2,
+        "safety": 3,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 5,
+        "resolution": 3,
+        "tone_fit": 4,
+        "safety": 5,
+        "would_send": true
+      },
+      "judge_justification": "The reply is safe and grounded in precedent, offering a standard support opening without making unsupported promises. However, it lacks a direct link or specific action step shown in similar precedent"
+    },
+    {
+      "thread_id": "2435218",
+      "system": "agent",
+      "reply": "I'm sorry about the streaming issues! Have you tried restarting the Fire TV Stick? That often resolves app problems. ^AM",
+      "human": {
+        "groundedness": 3,
+        "resolution": 2,
+        "tone_fit": 3,
+        "safety": 4,
+        "would_send": false
+      },
+      "judge": {
+        "groundedness": 3,
+        "resolution": 5,
+        "tone_fit": 5,
+        "safety": 4,
+        "would_send": true
+      },
+      "judge_justification": "The reply provides a helpful troubleshooting suggestion aligned with brand precedents, though suggesting restarting specifically for app problems is a slight generalization not explicitly found in the"
+    }
+  ]
+}

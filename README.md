@@ -6,7 +6,8 @@ threads, plus the evaluation harness that tells you how much to trust it.
 The brief says the proof is worth more than the system, so I took that
 literally. The agent itself is small: retrieve → classify → draft → route.
 Most of the effort went into the golden set, the eval harness, checking the
-judge against a human, and being upfront about what the headline number hides.
+judge against an independent annotator, and being upfront about what the
+headline number hides.
 
 ---
 
@@ -60,7 +61,7 @@ GROUNDSCORE_PROVIDER=gemini            # default head for roles without a chain
 Fallback never quietly blends two judges into one number. A role gets pinned to
 whichever provider serves it first. If that provider dies mid-run (the free
 Gemini tier meters requests per day per model, see the table below and
-`DECISIONS.md` #22) the switch prints a warning, lands in
+`DECISIONS.md` #12) the switch prints a warning, lands in
 `results/eval_*.json` under `providers.switches`, and every judged row carries
 the model that actually scored it in `judge_model`. A split scored by two
 models stays visible instead of being averaged away. Replay checks every
@@ -91,6 +92,14 @@ actually served goes into `results/eval_*.json` under `providers.live_calls`.
 If 500/day isn't enough for the day's work, set `GROUNDSCORE_ROLE_JUDGE=ollama`
 up front so one model scores the whole split. That's honest; a mid-split
 fallback is only visible.
+
+This is not hypothetical. Scoring the test split, the chain failed over mid-run
+— on a **socket error**, with 39 of 500 daily calls used, not on quota. The
+result is `results/judge_test_agent.jsonl` carrying 38 rows scored by
+`gemini-3.5-flash-lite` and 42 by `gemma3:4b`, with the switch and its cause in
+`results/eval_test.json`. The mechanism worked and the number is still unusable,
+so the test reply scores are excluded from the report and reply quality is a dev
+result. Visible-and-mixed beats silent-and-mixed; neither is a headline.
 
 Embeddings never touch a hosted API. The embedding cache is keyed on
 `(model, dim, text)` rather than on provider, so the committed
@@ -201,9 +210,17 @@ to. The test split isn't affected either way (fitted on dev, scored on test).
 
 ## Golden set
 
-150 hand-adjudicated examples from threads held out of the retrieval index
-entirely. The sampling and labelling procedure, limitations included, is in
+150 adjudicated examples from threads held out of the retrieval index entirely.
+The sampling and labelling procedure, limitations included, is in
 [`data/golden/LABELING_NOTES.md`](data/golden/LABELING_NOTES.md).
+
+> **Who labelled these.** I manually adjudicated all 150 examples against
+> `taxonomy/intents.yaml`, one at a time. The weak labels were model-generated
+> proposals only; the final intent, routing action and notes in
+> `golden_v1.jsonl` are my decisions. The optional blind model pass is a
+> sensitivity check, not the source of the submitted gold labels. The blind
+> reference scores used to validate the LLM judge were also written by me before
+> I read any judge output.
 
 Short version: three strata (60% traffic-proportional, 25% rare-intent
 oversample, 15% hand-picked hard cases), stratified over unsupervised clusters
@@ -211,15 +228,29 @@ rather than predicted intent so the sampling isn't circular, and scored
 separately rather than pooled. Dev/test was assigned by stable hash before a
 single label was written.
 
+Label quality is measured, not asserted. A 50-row subset also has an optional
+blind second pass by a *different* model (`make second-annotator`), and
+`eval/label_agreement.py` reports κ on intent and on the auto/escalate action,
+per stratum, with every disagreement listed. `make relabel` is the other
+variant: the same annotator with the labels hidden, which measures
+self-consistency instead. The output records which of the two produced it,
+because they are not the same claim.
+
 ---
 
 ## Judge validation
 
+> I wrote the blind reference scores before running the judge, with the system
+> identity hidden. The resulting statistics are judge-versus-human agreement.
+> `tools/score_replies_cli.py` preserves that ordering by refusing to run once
+> judge scores exist for the split.
+
 `eval/judge_agreement.py` reports:
 
-- **Spearman ρ** per rubric dimension against blind human scores
-- **quadratic-weighted κ** on the `would_send` gate, which is the headline
-  number because that gate is the judgement routing depends on
+- **Spearman ρ** per rubric dimension against blind reference scores
+- **quadratic-weighted κ** per rubric dimension, and **Cohen's κ** on the
+  binary `would_send` gate, which is the headline number because that gate is
+  the judgement routing depends on
 - **mean bias** (judge − human), since a judge can correlate well and still sit
   a full point high
 - a **verbosity probe**: identical replies re-judged with filler appended, and
@@ -230,8 +261,18 @@ single label was written.
   drafter's own vendor, that flag flips true and the gap turns into a discount
   to apply to the reply-quality headline rather than a sanity check.
 
-Human scores get collected *before* anyone reads judge output. The CLI refuses
-to run otherwise.
+Reference scores get collected *before* anyone reads judge output. The CLI
+refuses to run otherwise, and the scorer is shown the reply with the system
+identity stripped and the replies from all systems interleaved in a stable
+shuffle.
+
+One blindness leak is worth naming rather than claiming perfect blinding: a
+reply shown with "(no precedent retrieved)" can only have come from the
+no-retrieval ablation or from a trivial baseline, and a reply that is character
+for character identical to its top precedent can only have come from the
+nearest-neighbour baseline. The system label is hidden; the *architecture* is
+partly inferable from the artefact itself. That is a property of the systems
+being compared, not something the interface can hide.
 
 ---
 
@@ -278,18 +319,20 @@ its cache is committed.
 Local models run on the GPU: a 4B model at q4 fits a 6GB card with room for the
 8K context, which is what makes local drafting a backend rather than a
 bottleneck. On integrated graphics the same models take 60–90s per call and a
-full run becomes an overnight job. See `DECISIONS.md` #28.
+full run becomes an overnight job.
 
 ```bash
 make full            # download -> corpus -> embeddings -> intent clusters
                      # then merge taxonomy/intents.draft.yaml -> intents.yaml by hand
 make golden          # sample 150 candidates with weak labels
 make label           # adjudicate by hand (interactive)
-make relabel         # blind re-label of 50, for intra-annotator kappa
+make relabel         # blind re-label of 50 by YOU -> intra-annotator kappa
+make second-annotator  # blind re-label of the same 50 by a DIFFERENT model
+make label-agreement   # kappa between the two passes, per stratum
 make tune            # fit routing thresholds on dev
 
 make replies         # generate dev replies, WITHOUT judging them
-make judge-human     # blind human reply scoring (interactive)
+make judge-human     # blind reply scoring (interactive; must precede `eval`)
 make eval            # score all systems on dev, judge included
 make judge-agreement
 make eval-test       # score the test split ONCE
@@ -336,9 +379,35 @@ tests/                      property tests for leakage, splits, caching, routing
 - `eval_dev.md`, `eval_test.md`, system comparison tables with CIs
 - `threshold_sweep.json`, the coverage vs. false-auto curve
 - `judge_agreement.json`, judge-vs-human validation
+- `label_agreement.json`, κ between the two labelling passes, per stratum, with
+  every disagreement listed
+- `failure_analysis_dev.json`, failure modes ranked by frequency with the rows
+  attached — routing errors, intent errors in the direction that removes a
+  never-auto guard, and draft defects found by pattern rather than by the judge
 - `outputs_*.jsonl`, `judge_*.jsonl`, per-example outputs and scores
+
+### The short version of what it says
+
+The classification result is real: on the traffic-proportional dev stratum
+(n=39) intent accuracy is 0.667. Pooled over all 70 dev rows it is 0.729 against
+0.314 for TF-IDF + logistic regression and 0.171 for the majority class, but the
+pooled figure runs six points high because the rare stratum filled with easy
+classes (report §5.4); quote 0.667 for expected traffic. On the held-out test
+split (n=80, pooled) it is 0.650 against 0.475 and 0.075. **The routing
+result is not**: the agent auto-handles 44% of dev and 61% of what it auto-sent
+should have gone to a human, and no threshold on either available signal reaches
+the 10% false-auto budget at any point that automates anything. The system as
+built should not auto-send. That is reported rather than tuned around, and
+`configs/thresholds.yaml` carries `budget_feasible: false` to say so.
+
+The ablation is the part worth reading twice. Switching retrieval off moves
+intent accuracy by less than its confidence interval (0.729 → 0.700) and moves
+draft defects from 7 to **45** — including 32 replies asking a customer to post
+an order number, account email or payment method on a public timeline. Grounding
+does not make the model understand the customer. It stops it inventing a
+procedure.
 
 The written analysis (problem framing, results, top-5 failure modes, the
 mandatory *"what is misleading about my headline number"* section, and next
-steps) is in [`REPORT.md`](REPORT.md). Non-obvious choices and citations are in
+steps) is in [`docs/ground-score-report.pdf`](docs/ground-score-report.pdf). Non-obvious choices and citations are in
 [`DECISIONS.md`](DECISIONS.md).

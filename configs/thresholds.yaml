@@ -1,0 +1,26 @@
+tuned: true
+tuned_on: dev
+n_dev: 70
+max_false_auto_budget: 0.1
+tau_confidence: 0.9
+tau_similarity: 0.75
+budget_feasible: false
+dev_operating_point:
+  confidence: null
+  similarity: null
+dev_harm_floor:
+  confidence:
+    threshold: 0.0
+    coverage: 0.6285714285714286
+    false_auto_rate: 0.6136363636363636
+    n_auto: 44
+  similarity:
+    threshold: 0.725
+    coverage: 0.5285714285714286
+    false_auto_rate: 0.5675675675675675
+    n_auto: 37
+_note: Chosen on the dev split only. With ~70 dev examples these values are themselves
+  noisy estimates; the report treats them as a fitted parameter, not a discovered
+  constant. If budget_feasible is false, these are the conservative defaults and NOT
+  fitted at all -- no threshold on either signal reached the false-auto budget, which
+  is reported rather than worked around.

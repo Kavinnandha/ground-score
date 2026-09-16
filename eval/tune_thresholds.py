@@ -61,8 +61,24 @@ def main() -> int:
     best_conf = metrics.best_threshold(conf_curve, args.max_false_auto)
     best_sim = metrics.best_threshold(sim_curve, args.max_false_auto)
 
-    if best_conf is None:
-        print("No confidence threshold meets the budget -- keeping the conservative default.")
+    # An infeasible budget is a result, not an error. When it happens the config
+    # records it, so a reader can see that the shipped thresholds are the
+    # conservative defaults rather than a fitted optimum.
+    def _floor(curve: list[dict]) -> dict | None:
+        real = [p for p in curve if p["n_auto"] > 0]
+        return min(real, key=lambda p: p["false_auto_rate"]) if real else None
+
+    floor_conf, floor_sim = _floor(conf_curve), _floor(sim_curve)
+    for label, best, floor in (("confidence", best_conf, floor_conf),
+                               ("similarity", best_sim, floor_sim)):
+        if best is None:
+            print(f"No {label} threshold meets the {args.max_false_auto:.0%} budget "
+                  f"-- keeping the conservative default.")
+            if floor:
+                print(f"  best achievable false-auto on this signal: "
+                      f"{floor['false_auto_rate']:.1%} at coverage {floor['coverage']:.1%} "
+                      f"(tau={floor['threshold']})")
+
     tau_conf = best_conf["threshold"] if best_conf else 0.9
     tau_sim = best_sim["threshold"] if best_sim else 0.75
 
@@ -73,14 +89,25 @@ def main() -> int:
         "max_false_auto_budget": args.max_false_auto,
         "tau_confidence": float(tau_conf),
         "tau_similarity": float(tau_sim),
+        "budget_feasible": bool(best_conf) and bool(best_sim),
         "dev_operating_point": {
             "confidence": best_conf,
             "similarity": best_sim,
         },
+        # Lowest false-auto rate reachable on each signal at ANY threshold that
+        # still automates something. When budget_feasible is false, this is the
+        # number that says how far off the budget the signal actually is.
+        "dev_harm_floor": {
+            "confidence": floor_conf,
+            "similarity": floor_sim,
+        },
         "_note": (
             "Chosen on the dev split only. With ~70 dev examples these values are "
             "themselves noisy estimates; the report treats them as a fitted "
-            "parameter, not a discovered constant."
+            "parameter, not a discovered constant. If budget_feasible is false, "
+            "these are the conservative defaults and NOT fitted at all -- no "
+            "threshold on either signal reached the false-auto budget, which is "
+            "reported rather than worked around."
         ),
     }
     config.THRESHOLDS_CONFIG.parent.mkdir(parents=True, exist_ok=True)

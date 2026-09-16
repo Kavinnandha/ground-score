@@ -9,7 +9,7 @@ Not globally. Each ROLE has its own ordered provider chain (see llm.role_chain):
 the drafter heads at `ollama`, the judge heads at `gemini`, embeddings are
 `ollama` only. The judge must not share the drafter's lineage, and making that a
 property of the role rather than of the run means it holds by default instead of
-by remembering to set an env var. DECISIONS.md #32.
+by remembering to set an env var. DECISIONS.md #12.
 
 Replay is keyless: the response cache is committed and `make reproduce` runs
 with keys stripped. Only *regenerating* results needs a key.
@@ -27,7 +27,7 @@ answers in a few seconds. That is what makes the local drafter a real backend
 rather than a bottleneck -- an earlier revision of this project ran on Intel
 integrated graphics, where the same model took 60-90s per call and a full
 evaluation took 12-24 hours. The hardware, not the architecture, was what
-changed. See DECISIONS.md #28.
+changed.
 
 Running the drafter locally buys three things the hosted path could not:
 
