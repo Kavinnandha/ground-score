@@ -25,12 +25,17 @@ wrapper:
 pip install -r requirements.txt && python scripts/reproduce.py
 ```
 
-`make reproduce` rebuilds every table in `results/` from artifacts that are
-committed here: the 8.5k-thread corpus subsample, the embedding cache, and the
-model response cache. It runs with API keys stripped out of the environment, so
-any step that isn't fully cached blows up instead of quietly making live calls
-and handing you numbers that don't match the published ones. Cache misses have
-to be zero, and the script prints the count.
+`make reproduce` rebuilds the evaluation tables in `results/` from artifacts
+that are committed here: the 8.5k-thread corpus subsample, the embedding cache,
+and the model response cache. It runs with API keys stripped out of the
+environment, so any step that isn't fully cached blows up instead of quietly
+making live calls and handing you numbers that don't match the published ones.
+Cache misses have to be zero, and the script prints the count.
+
+It needs neither a GPU nor a running Ollama: every call it makes is a cache
+lookup, and a miss is a hard error rather than a live call. About 7 minutes on
+the machine this was built on (Python 3.14; the code parses on 3.10+). The
+tables it does *not* rebuild are listed under [Results](#results) below.
 
 ### Models: one chain per role, not one provider per run
 
@@ -223,8 +228,9 @@ The sampling and labelling procedure, limitations included, is in
 > I read any judge output.
 
 Short version: three strata (60% traffic-proportional, 25% rare-intent
-oversample, 15% hand-picked hard cases), stratified over unsupervised clusters
-rather than predicted intent so the sampling isn't circular, and scored
+oversample, 15% hard cases picked by surface heuristics rather than by model
+difficulty, which would have flattered the model), stratified over unsupervised
+clusters rather than predicted intent so the sampling isn't circular, and scored
 separately rather than pooled. Dev/test was assigned by stable hash before a
 single label was written.
 
@@ -243,7 +249,7 @@ because they are not the same claim.
 > I wrote the blind reference scores before running the judge, with the system
 > identity hidden. The resulting statistics are judge-versus-human agreement.
 > `tools/score_replies_cli.py` preserves that ordering by refusing to run once
-> judge scores exist for the split.
+> judge scores exist for the split, unless overridden with `--allow-after`.
 
 `eval/judge_agreement.py` reports:
 
@@ -253,6 +259,13 @@ because they are not the same claim.
   the judgement routing depends on
 - **mean bias** (judge − human), since a judge can correlate well and still sit
   a full point high
+
+Two further probes are implemented in the same script, but their results are
+**not** part of the committed numbers: each one re-judges a subset live, so
+`make reproduce` runs the script with `--skip-probes`, and
+`results/judge_agreement.json` carries no probe section. Run
+`python eval/judge_agreement.py --split dev` with a key to add them:
+
 - a **verbosity probe**: identical replies re-judged with filler appended, and
   any score movement is length bias
 - a **self-preference probe**: a subset re-scored with the drafter's own model,
@@ -282,7 +295,7 @@ being compared, not something the interface can hide.
 make reference        # or: python eval/reference_replies.py --split dev
 ```
 
-Every other number in this repo is self-referential. "The agent scores 3.4 on a
+Every other number in this repo is self-referential. "The agent scores 4.5 on a
 rubric I wrote, judged by a model I chose" doesn't tell you whether that's good.
 So the same blind judge scores the reply @AmazonHelp actually sent for each
 golden-pool thread, against the same retrieved precedent, on the same rubric.
@@ -373,11 +386,9 @@ tests/                      property tests for leakage, splits, caching, routing
 
 ## Results
 
-`make reproduce` writes these into `results/`:
+`make reproduce` regenerates these from the committed caches:
 
-- `brand_profile.md`, the evidence behind the brand choice
 - `eval_dev.md`, `eval_test.md`, system comparison tables with CIs
-- `threshold_sweep.json`, the coverage vs. false-auto curve
 - `judge_agreement.json`, judge-vs-human validation
 - `label_agreement.json`, κ between the two labelling passes, per stratum, with
   every disagreement listed
@@ -385,6 +396,16 @@ tests/                      property tests for leakage, splits, caching, routing
   attached — routing errors, intent errors in the direction that removes a
   never-auto guard, and draft defects found by pattern rather than by the judge
 - `outputs_*.jsonl`, `judge_*.jsonl`, per-example outputs and scores
+
+Three more tables are committed but sit outside the replay, because they are
+produced by targets that run once and are read by the report rather than by the
+evaluation:
+
+- `brand_profile.md` / `.json`, the evidence behind the brand choice
+  (`python -m groundscore.profile_brands`)
+- `threshold_sweep.json`, the coverage vs. false-auto curve (`make tune`)
+- `reference_replies_dev.json`, the brand's own replies under the same judge
+  (`make reference`), and `retrieval_backend_comparison.json`
 
 ### The short version of what it says
 

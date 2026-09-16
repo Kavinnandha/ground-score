@@ -4,6 +4,10 @@ Chrome's headless print is the whole toolchain here. The alternatives all pull
 in a dependency (weasyprint, reportlab, a LaTeX install) that `make reproduce`
 would then have to carry, and the report is not part of the reproduction path.
 
+The HTML source is kept out of the repository (it is gitignored); the committed
+PDF is the deliverable. Every number in it is read off a committed file in
+results/, so the PDF can be checked against the repo without the source.
+
     python scripts/build_report.py
     python scripts/build_report.py --browser "C:/path/to/chrome.exe"
 """

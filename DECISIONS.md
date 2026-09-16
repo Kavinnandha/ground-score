@@ -92,9 +92,10 @@ single opaque number.
   F1), SciPy (Spearman ρ), NumPy, pandas, PyYAML, rich, pytest, `google-genai`.
 - Methods: percentile bootstrap confidence intervals (Efron & Tibshirani, 1993);
   Cohen's κ (Cohen, 1960) and quadratic-weighted κ (Cohen, 1968) for agreement;
-  LLM-as-judge with a validated rubric and self-preference / verbosity probes, following
-  the concerns raised in Zheng et al., "Judging LLM-as-a-Judge with MT-Bench and
-  Chatbot Arena" (NeurIPS 2023); retrieval-grounded few-shot prompting (dynamic
-  exemplar selection by embedding similarity).
+  LLM-as-judge validated against blind human scores, with self-preference and verbosity
+  probes implemented (their results are not in the committed numbers) after the
+  concerns raised in Zheng et al., "Judging LLM-as-a-Judge with MT-Bench and Chatbot
+  Arena" (NeurIPS 2023); retrieval-grounded few-shot prompting (dynamic exemplar
+  selection by embedding similarity).
 - The assignment permits AI coding assistants; the implementation uses them,
   but the final labels, report, and decision log are the author's own work.

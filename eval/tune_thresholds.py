@@ -102,12 +102,13 @@ def main() -> int:
             "similarity": floor_sim,
         },
         "_note": (
-            "Chosen on the dev split only. With ~70 dev examples these values are "
-            "themselves noisy estimates; the report treats them as a fitted "
-            "parameter, not a discovered constant. If budget_feasible is false, "
-            "these are the conservative defaults and NOT fitted at all -- no "
+            "Chosen on the dev split only. tuned=true means the tuner ran, not "
+            "that it found an operating point. When budget_feasible is false these "
+            "are the conservative defaults and are NOT fitted at all -- no "
             "threshold on either signal reached the false-auto budget, which is "
-            "reported rather than worked around."
+            "reported rather than worked around (report 3.3 and 5.9). Even when "
+            "the fit does succeed, ~70 dev examples make these noisy point "
+            "estimates rather than discovered constants."
         ),
     }
     config.THRESHOLDS_CONFIG.parent.mkdir(parents=True, exist_ok=True)

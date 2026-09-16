@@ -37,10 +37,13 @@ short (<40 chars), >70% caps, ≥3 emoji, ≥2 question marks, rage markers (`!!
 lot"). Selecting "cases the model finds hard" would have flattered the model.
 These are cases that are objectively underspecified.
 
-The three strata get scored separately and never pooled into the headline.
-Pooling misleads in both directions: the rare stratum drags accuracy below
-real-traffic performance, and the proportional stratum hides the tail. The
-report leads with the traffic-weighted (`proportional`) number.
+The three strata are also scored separately, because a pooled number misleads:
+the rare and adversarial strata are over-sampled by design, so the pool is not
+the traffic mix. The report's system tables are pooled over all rows — that is
+the only way to compare five systems on the same rows with usable intervals at
+n=70 — and report §5.4 gives the per-stratum split with the size and direction
+of the distortion, which turned out to be +6 points rather than the drag I
+expected. Quote the `proportional` number for expected traffic.
 
 ### Known leak in the language filter
 

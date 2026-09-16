@@ -46,7 +46,7 @@ STEPS = [
     # the agreement statistic pairs on instead of inheriting three of them from
     # the commit. Every one of these calls is in the committed cache; the
     # default is narrower only to keep a LIVE `make eval` inside the daily
-    # hosted budget (DECISIONS.md #12).
+    # hosted budget (README, "Models": 500 judge calls per day).
     ("dev evaluation", [sys.executable, "eval/run_eval.py", "--split", "dev",
                         "--judge-systems",
                         "agent,agent_no_retrieval,simple_tfidf_nn,trivial_always_auto"]),

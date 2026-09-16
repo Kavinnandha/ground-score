@@ -12,3 +12,6 @@ venv/
 
 # Scratch
 data/interim/
+
+# Report source stays local; docs/ground-score-report.pdf is what ships.
+docs/report.html

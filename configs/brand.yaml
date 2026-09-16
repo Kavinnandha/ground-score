@@ -21,7 +21,8 @@
 # hulu_support has a lower handoff rate (0.057) and higher substantive rate
 # (0.927) but its lexical diversity is 0.124 and its multi-turn rate 0.383 -- a
 # narrow intent space that would collapse to ~4 classes and make the
-# classification result uninformatively easy. Recorded in DECISIONS.md.
+# classification result uninformatively easy. DECISIONS.md #1 records the
+# brand choice; docs/ground-score-report.pdf §2 records the correction noted above.
 
 brand: AmazonHelp
 
@@ -39,7 +40,8 @@ split:
   # Everything else becomes the retrieval corpus.
 
 golden:
-  target_size: 150   # brief allows 150-250; see DECISIONS.md on the API budget
+  target_size: 150   # brief allows 150-250; the binding constraint is annotator
+                     # attention, not compute -- data/golden/LABELING_NOTES.md
   # Sampling strata, documented in data/golden/LABELING_NOTES.md
   proportional_share: 0.60      # mirrors real traffic mix
   rare_intent_share: 0.25       # inverse-frequency oversample of tail classes

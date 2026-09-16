@@ -142,6 +142,23 @@ def test_offline_flag_blocks_local_backend_too(monkeypatch):
         llm.complete("another definitely-uncached prompt", model="qwen3:4b")
 
 
+def test_offline_flag_blocks_live_embedding_too(monkeypatch, tmp_path):
+    """Same hole for embeddings: a running Ollama must not serve a replay miss.
+
+    Without the guard an uncached text during `make reproduce` was embedded
+    live whenever Ollama happened to be up, so the replay only failed loudly on
+    machines that did not have it running.
+    """
+    from groundscore import embed
+
+    monkeypatch.setenv("GROUNDSCORE_OFFLINE", "1")
+    monkeypatch.setattr(providers, "available", lambda: True)
+    monkeypatch.setattr(providers, "embed", lambda *a, **k: pytest.fail("live embedding call"))
+    cache = embed.EmbeddingCache(path=tmp_path / "empty.npz")
+    with pytest.raises(llm.OfflineCacheMiss):
+        embed.embed_model(["a definitely-uncached text"], cache=cache)
+
+
 def test_cache_key_separates_providers():
     """A cache built locally must never be replayed as if it were hosted."""
     local = llm.cache_key("m", "p", None, 0.0, None, prov="ollama")

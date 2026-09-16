@@ -19,8 +19,9 @@ dev_harm_floor:
     coverage: 0.5285714285714286
     false_auto_rate: 0.5675675675675675
     n_auto: 37
-_note: Chosen on the dev split only. With ~70 dev examples these values are themselves
-  noisy estimates; the report treats them as a fitted parameter, not a discovered
-  constant. If budget_feasible is false, these are the conservative defaults and NOT
-  fitted at all -- no threshold on either signal reached the false-auto budget, which
-  is reported rather than worked around.
+_note: Chosen on the dev split only. tuned=true means the tuner ran, not that it found
+  an operating point. When budget_feasible is false these are the conservative defaults
+  and are NOT fitted at all -- no threshold on either signal reached the false-auto budget,
+  which is reported rather than worked around (report 3.3 and 5.9). Even when the fit
+  does succeed, ~70 dev examples make these noisy point estimates rather than discovered
+  constants.

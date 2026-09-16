@@ -39,7 +39,7 @@ EMB_CACHE_PATH = REPO_ROOT / "cache" / "emb_cache.npz"
 
 # 768 rather than the native 3072: it keeps the committed cache ~4x smaller for
 # a marginal retrieval-quality cost on short tweets, and the repo has to stay
-# clonable. Documented in DECISIONS.md.
+# clonable.
 # nomic-embed-text is natively 768-dim, which is also what the Gemini path was
 # truncated to, so the two backends produce caches of the same shape.
 EMBED_DIM = 768
@@ -189,6 +189,14 @@ def embed_model(texts: list[str], *, model: str = llm.MODEL_EMBED, dim: int = EM
     missing_idx = [i for i, k in enumerate(keys) if cache.get(k) is None]
     if missing_idx:
         missing = f"{len(missing_idx)} of {len(texts)} texts are not in the embedding cache"
+        if llm.offline():
+            # Same hole llm.offline() closes for completions: Ollama needs no
+            # key, so on a machine where it happens to be running a miss would
+            # otherwise be embedded live mid-replay and look like a clean run.
+            raise llm.OfflineCacheMiss(
+                f"{missing}, and GROUNDSCORE_OFFLINE=1.\n"
+                "  This is a reproduction run: it must replay the committed cache exactly."
+            )
         if llm.provider() == "ollama":
             if not providers.available():
                 raise llm.OfflineCacheMiss(
